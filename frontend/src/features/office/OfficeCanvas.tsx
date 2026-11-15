@@ -20,8 +20,8 @@ export function OfficeCanvas() {
         async function mountCanvas() {
             try {
                 await app.init({
-                    width: 640,
-                    height: 260,
+                    width: 544,
+                    height: 320,
                     backgroundColor: 0x0f172a,
                     // 현재 장면은 정적이므로 자동 렌더링 루프를 끄고 app.render()로 한 번만 그림
                     autoStart: false,
