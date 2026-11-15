@@ -1,17 +1,19 @@
-import { Assets, Container, Rectangle, Sprite, Texture } from 'pixi.js'
+import { Assets, Container, Rectangle, Sprite, Texture, TilingSprite } from 'pixi.js'
 
 
 export async function createOfficeScene() {
     const base = `${import.meta.env.BASE_URL}assets/`
 
-    const [deskTexture, pcTexture, chairTexture, characterSheet] = await Promise.all([
-        Assets.load<Texture>(`${base}furniture/DESK/DESK_FRONT.png`),
-        Assets.load<Texture>(`${base}furniture/PC/PC_FRONT_ON_1.png`),
-        Assets.load<Texture>(`${base}furniture/WOODEN_CHAIR/WOODEN_CHAIR_BACK.png`),
-        Assets.load<Texture>(`${base}characters/char_0.png`),
-    ])
+    const [deskTexture, pcTexture, chairTexture, characterSheet, floorTexture] = 
+        await Promise.all([
+            Assets.load<Texture>(`${base}furniture/DESK/DESK_FRONT.png`),
+            Assets.load<Texture>(`${base}furniture/PC/PC_FRONT_ON_1.png`),
+            Assets.load<Texture>(`${base}furniture/WOODEN_CHAIR/WOODEN_CHAIR_BACK.png`),
+            Assets.load<Texture>(`${base}characters/char_0.png`),
+            Assets.load<Texture>(`${base}floors/floor_6.png`),
+        ])
 
-    for (const texture of [deskTexture, pcTexture, chairTexture, characterSheet]) {
+    for (const texture of [deskTexture, pcTexture, chairTexture, characterSheet, floorTexture]) {
         texture.source.scaleMode = 'nearest'
     }
 
@@ -35,9 +37,21 @@ export async function createOfficeScene() {
     developer.once('destroyed', () => developerTexture.destroy())
 
     const seat = new Container()
-
     seat.addChild(desk, pc, developer, chair)
-    seat.scale.set(3)
+    seat.position.set(32, 128)
 
-    return seat
+    const floor = new TilingSprite({
+        texture: floorTexture,
+        width: 512,
+        height: 272,
+    })
+    floor.position.set(16, 32)
+    floor.tint = 0xd29d71
+
+    const office = new Container()
+
+    // 좌석이 바닥 위에 그려지도록 바닥을 먼저 추가
+    office.addChild(floor, seat)
+
+    return office
 }

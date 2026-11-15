@@ -34,14 +34,13 @@ export function OfficeCanvas() {
 
                 initialized = true
 
-                const seat = await createOfficeScene()
+                const office = await createOfficeScene()
                 if (disposed) {
-                    seat.destroy({children: true})
+                    office.destroy({ children: true })
                     return
                 }
 
-                seat.position.set((app.screen.width - 48 * 3) / 2, 28)
-                app.stage.addChild(seat)
+                app.stage.addChild(office)
                 host?.appendChild(app.canvas)
                 app.render()
             } catch (error) {
