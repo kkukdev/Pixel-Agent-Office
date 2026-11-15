@@ -1,4 +1,5 @@
-import './App.css';
+import './App.css'
+import { OfficeCanvas } from './features/office/OfficeCanvas'
 
 function App() {
   return (
@@ -10,7 +11,7 @@ function App() {
       <div className="office-layout">
         <section className="office-panel" aria-labelledby="office-title">
           <h2 id="office-title">오피스</h2>
-          <p>아직 배치된 에이전트가 없습니다.</p>
+          <OfficeCanvas />
         </section>
 
         <section className="office-panel" aria-labelledby="task-title">

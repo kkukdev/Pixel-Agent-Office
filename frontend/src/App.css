@@ -37,3 +37,10 @@
   margin: 0;
   color: #cbd5e1;
 }
+
+/* PixiJS에서 정한 내부 해상도의 비율을 유지하며 패널 너비에 맞춰 표시 */
+.office-canvas > canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
