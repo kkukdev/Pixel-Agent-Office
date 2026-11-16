@@ -4,7 +4,8 @@ import { Assets, Container, Rectangle, Sprite, Texture, TilingSprite } from 'pix
 export async function createOfficeScene() {
     const base = `${import.meta.env.BASE_URL}assets/`
 
-    const [deskTexture, pcFront, pcBack, chairBack, chairFront, characterSheets, floorTexture] = 
+    // 필요한 텍스처를 비동기적으로 로드
+    const [deskTexture, pcFront, pcBack, chairBack, chairFront, characterSheets, meetingTableTexture, meetingFloorTexture, floorTexture] = 
         await Promise.all([
             Assets.load<Texture>(`${base}furniture/DESK/DESK_FRONT.png`),
             Assets.load<Texture>(`${base}furniture/PC/PC_FRONT_ON_1.png`),
@@ -16,10 +17,14 @@ export async function createOfficeScene() {
                     Assets.load<Texture>(`${base}characters/char_${index}.png`),
                 ),
             ),
+            Assets.load<Texture>(`${base}furniture/TABLE_FRONT/TABLE_FRONT.png`),
+            Assets.load<Texture>(`${base}floors/floor_0.png`),
             Assets.load<Texture>(`${base}floors/floor_6.png`),
         ])
 
-    for (const texture of [deskTexture, pcFront, pcBack, chairBack, chairFront, ...characterSheets, floorTexture]) {
+    // 픽셀 필터 설정
+    // - 모든 텍스처에 대해 scaleMode를 'nearest'로 설정하여 픽셀 아트 스타일을 유지
+    for (const texture of [deskTexture, pcFront, pcBack, chairBack, chairFront, ...characterSheets, meetingTableTexture, meetingFloorTexture, floorTexture]) {
         texture.source.scaleMode = 'nearest'
     }
 
@@ -77,6 +82,42 @@ export async function createOfficeScene() {
         office.addChild(createDeveloperSeat(x, 'top', characterSheets[column + 3]))
         office.addChild(createDeveloperSeat(x, 'bottom', characterSheets[column]))
     }
+
+    // 회의 영역 설정: 사무실 오른쪽 위에 배치
+    // - 회의 영역은 테이블과 의자로 구성되며, 의자는 테이블 앞뒤로 배치
+    const meetingArea = new Container()
+    meetingArea.position.set(272, 112)
+
+    const meetingFloor = new TilingSprite({
+        texture: meetingFloorTexture,
+        width: 128,
+        height: 90,
+    })
+    meetingFloor.position.set(0, -5)
+    meetingArea.addChild(meetingFloor)
+
+    const chairXs = [20, 44, 68, 92]
+
+    // 위쪽 의자의 아랫부분은 테이블 뒤로 들어가도록 설정
+    for (const x of chairXs) {
+        const chair = new Sprite(chairFront)
+        chair.position.set(x, -9)
+        meetingArea.addChild(chair)
+    }
+
+    const meetingTable = new Sprite(meetingTableTexture)
+    meetingTable.width = 96
+    meetingTable.height = 48
+    meetingTable.position.set(16, 7)
+    meetingArea.addChild(meetingTable)
+
+    for (const x of chairXs) {
+        const chair = new Sprite(chairBack)
+        chair.position.set(x, 38)
+        meetingArea.addChild(chair)
+    }
+
+    office.addChild(meetingArea)
 
     return office
 }
