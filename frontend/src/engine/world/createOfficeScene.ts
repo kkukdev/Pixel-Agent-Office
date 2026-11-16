@@ -5,7 +5,7 @@ export async function createOfficeScene() {
     const base = `${import.meta.env.BASE_URL}assets/`
 
     // 필요한 텍스처를 비동기적으로 로드
-    const [deskTexture, pcFront, pcBack, chairBack, chairFront, characterSheets, meetingTableTexture, meetingFloorTexture, floorTexture] = 
+    const [deskTexture, pcFront, pcBack, chairBack, chairFront, characterSheets, meetingTableTexture, sofaFront, sofaBack, sofaSide, coffeeTableTexture, meetingFloorTexture, floorTexture] =
         await Promise.all([
             Assets.load<Texture>(`${base}furniture/DESK/DESK_FRONT.png`),
             Assets.load<Texture>(`${base}furniture/PC/PC_FRONT_ON_1.png`),
@@ -18,16 +18,22 @@ export async function createOfficeScene() {
                 ),
             ),
             Assets.load<Texture>(`${base}furniture/TABLE_FRONT/TABLE_FRONT.png`),
+            Assets.load<Texture>(`${base}furniture/SOFA/SOFA_FRONT.png`),
+            Assets.load<Texture>(`${base}furniture/SOFA/SOFA_BACK.png`),
+            Assets.load<Texture>(`${base}furniture/SOFA/SOFA_SIDE.png`),
+            Assets.load<Texture>(`${base}furniture/COFFEE_TABLE/COFFEE_TABLE.png`),
             Assets.load<Texture>(`${base}floors/floor_0.png`),
             Assets.load<Texture>(`${base}floors/floor_6.png`),
         ])
 
     // 픽셀 필터 설정
     // - 모든 텍스처에 대해 scaleMode를 'nearest'로 설정하여 픽셀 아트 스타일을 유지
-    for (const texture of [deskTexture, pcFront, pcBack, chairBack, chairFront, ...characterSheets, meetingTableTexture, meetingFloorTexture, floorTexture]) {
+    for (const texture of [deskTexture, pcFront, pcBack, chairBack, chairFront, ...characterSheets, meetingTableTexture, sofaFront, sofaBack, sofaSide, coffeeTableTexture, meetingFloorTexture, floorTexture]) {
         texture.source.scaleMode = 'nearest'
     }
 
+
+    // 개발자 좌석 생성 함수
     function createDeveloperSeat(x: number, row: 'top' | 'bottom', characterSheet: Texture) {
         const isTopRow = row === 'top'
         const desk = new Sprite(deskTexture)
@@ -66,6 +72,8 @@ export async function createOfficeScene() {
         return seat
     }
 
+
+    // 사무실 전체 바닥 생성
     const floor = new TilingSprite({
         texture: floorTexture,
         width: 512,
@@ -78,10 +86,13 @@ export async function createOfficeScene() {
     // 좌석이 바닥 위에 그려지도록 바닥을 먼저 추가
     office.addChild(floor)
 
+
+    // 개발자 좌석 배치: 사무실 왼쪽에 2열로 배치
     for (const [column, x] of [48, 92,136].entries()) {
         office.addChild(createDeveloperSeat(x, 'top', characterSheets[column + 3]))
         office.addChild(createDeveloperSeat(x, 'bottom', characterSheets[column]))
     }
+
 
     // 회의 영역 설정: 사무실 오른쪽 위에 배치
     // - 회의 영역은 테이블과 의자로 구성되며, 의자는 테이블 앞뒤로 배치
@@ -118,6 +129,38 @@ export async function createOfficeScene() {
     }
 
     office.addChild(meetingArea)
+
+
+    // 라운지 영역 설정: 회의실 아래에 배치
+    const loungeArea = new Container()
+    loungeArea.position.set(272, 213)
+
+    const loungeFloor = new TilingSprite({
+        texture: meetingFloorTexture,
+        width: 128,
+        height: 90,
+    })
+    loungeFloor.tint = 0x789eb8 // 라운지 영역의 바닥 색상을 회의실과 구분되도록 변경
+
+    const topSofa = new Sprite(sofaFront)
+    topSofa.position.set(48, 10)
+
+    const coffeeTable = new Sprite(coffeeTableTexture)
+    coffeeTable.position.set(48, 24)
+
+    const leftSofa = new Sprite(sofaSide)
+    leftSofa.position.set(28, 25)
+
+    const rightSofa = new Sprite(sofaSide)
+    rightSofa.scale.x = -1 // 오른쪽 소파는 좌우 반전
+    rightSofa.position.set(100, 25)
+
+    const bottomSofa = new Sprite(sofaBack)
+    bottomSofa.position.set(48, 58)
+
+
+    loungeArea.addChild(loungeFloor, topSofa, coffeeTable, leftSofa, rightSofa, bottomSofa)
+    office.addChild(loungeArea)
 
     return office
 }
