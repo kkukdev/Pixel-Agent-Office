@@ -1,7 +1,7 @@
 import { Application } from 'pixi.js'
 import { useEffect, useRef, useState } from "react"
 
-import { createOfficeScene } from '../../engine/world/createOfficeScene'
+import { createOfficeLayout, OFFICE_MAP_SIZE } from '../../engine/world/createOfficeLayout'
 
 
 export function OfficeCanvas() {
@@ -20,8 +20,7 @@ export function OfficeCanvas() {
         async function mountCanvas() {
             try {
                 await app.init({
-                    width: 544,
-                    height: 320,
+                    ...OFFICE_MAP_SIZE,
                     backgroundColor: 0x0f172a,
                     // 현재 장면은 정적이므로 자동 렌더링 루프를 끄고 app.render()로 한 번만 그림
                     autoStart: false,
@@ -34,7 +33,7 @@ export function OfficeCanvas() {
 
                 initialized = true
 
-                const office = await createOfficeScene()
+                const office = await createOfficeLayout()
                 if (disposed) {
                     office.destroy({ children: true })
                     return
