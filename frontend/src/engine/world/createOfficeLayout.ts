@@ -11,14 +11,18 @@ export const OFFICE_MAP_SIZE = {
 export async function createOfficeLayout() {
     const base = `${import.meta.env.BASE_URL}assets/`
 
-    const [floorTexture, wallAtlas] = await Promise.all([
+    const [floorTexture, wallAtlas, plainFloor, gridFloor, checkFloor] = await Promise.all([
         Assets.load<Texture>(`${base}floors/floor_6.png`),
         Assets.load<Texture>(`${base}walls/wall_0.png`),
+        Assets.load<Texture>(`${base}floors/floor_0.png`),
+        Assets.load<Texture>(`${base}floors/floor_3.png`),
+        Assets.load<Texture>(`${base}floors/floor_7.png`),
     ])
 
     // 픽셀 필터 설정
-    floorTexture.source.scaleMode = 'nearest'
-    wallAtlas.source.scaleMode = 'nearest'
+    for (const texture of [floorTexture, wallAtlas, plainFloor, gridFloor, checkFloor]) {
+        texture.source.scaleMode = 'nearest'
+    }
 
     
     // 오피스 컨테이너 생성
@@ -33,6 +37,34 @@ export async function createOfficeLayout() {
     })
     floor.position.set(16, 20)
     floor.tint = 0xbc956f
+
+
+    // 각 방의 바닥 생성
+    const roomFloors = new Container()
+
+    const rooms = [
+        // 대표실
+        { left: 16, top: 20, right: 228, bottom: 381, texture: floorTexture, tint: 0xb68564 },
+        // 프로젝트실
+        { left: 16, top: 381, right: 228, bottom: 628, texture: gridFloor, tint: 0x8caba8 },
+        // 회의실
+        { left: 479, top: 20, right: 704, bottom: 344, texture: plainFloor, tint: 0x6f97ad },
+        // 탕비실
+        { left: 479, top: 344, right: 704, bottom: 628, texture: gridFloor, tint: 0xb6ac89 },
+        // 쇼룸
+        { left: 228, top: 475, right: 479, bottom: 628, texture: checkFloor, tint: 0x82949d },
+    ]
+
+    for (const { left, top, right, bottom, texture, tint } of rooms) {
+        const roomFloor = new TilingSprite({
+            texture,
+            width: right - left,
+            height: bottom - top,
+        })
+        roomFloor.position.set(left, top)
+        roomFloor.tint = tint
+        roomFloors.addChild(roomFloor)
+    }
 
 
     // 벽 텍스처 생성
@@ -51,7 +83,7 @@ export async function createOfficeLayout() {
         [16, 704, 20, 16],      // 위쪽 외벽
         [16, 267, 628, 7],      // 아래쪽 외벽 왼쪽
         [345, 704, 628, 7],     // 아래쪽 외벽 오른쪽
-        [16, 228, 381, 7],      // 대표실과 연구소 사이
+        [16, 228, 381, 7],      // 대표실과 프로젝트실 사이
         [479, 704, 344, 16],    // 회의실과 탕비실 사이
         [228, 354, 475, 7],     // 쇼룸 개구부 왼쪽
         [448, 479, 475, 7],     // 쇼룸 개구부 오른쪽
@@ -97,8 +129,8 @@ export async function createOfficeLayout() {
     }
 
 
-    // 오피스 레이아웃에 바닥, 벽, 벽 테두리 추가
-    office.addChild(floor, wallFaces, wallEdges)
+    // // 공용 바닥 위에 방별 바닥을 깔고, 바닥 경계가 벽 아래에 오도록 벽을 마지막에 추가
+    office.addChild(floor, roomFloors, wallFaces, wallEdges)
 
     return office
 }
