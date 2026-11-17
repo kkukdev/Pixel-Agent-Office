@@ -1,12 +1,14 @@
 import { Assets, Container, Sprite, Texture } from 'pixi.js'
 
+import { createOfficeCharacter } from './createOfficeCharacter'
+
 
 // 오피스에 배치할 가구 레이아웃 생성
 export async function createFurnitureLayout() {
     const base = `${import.meta.env.BASE_URL}assets/`
 
-    // 가구 텍스처 로드
-    const [deskFront, deskSide, pcFront, pcSide, pcBack, chairFront, chairSide, chairBack, meetingChairFront, meetingChairSide] = await Promise.all([
+    // 가구 텍스처 및 캐릭터 로드
+    const [deskFront, deskSide, pcFront, pcSide, pcBack, chairFront, chairSide, chairBack, meetingChairFront, meetingChairSide, endCharacter] = await Promise.all([
         Assets.load<Texture>(`${base}furniture/DESK/DESK_FRONT.png`),
         Assets.load<Texture>(`${base}furniture/DESK/DESK_SIDE.png`),
         Assets.load<Texture>(`${base}furniture/PC/PC_FRONT_ON_1.png`),
@@ -17,6 +19,7 @@ export async function createFurnitureLayout() {
         Assets.load<Texture>(`${base}furniture/WOODEN_CHAIR/WOODEN_CHAIR_BACK.png`),
         Assets.load<Texture>(`${base}furniture/CUSHIONED_CHAIR/CUSHIONED_CHAIR_FRONT.png`),
         Assets.load<Texture>(`${base}furniture/CUSHIONED_CHAIR/CUSHIONED_CHAIR_SIDE.png`),
+        createOfficeCharacter(),
     ])
 
     // 픽셀 필터 설정
@@ -101,8 +104,11 @@ export async function createFurnitureLayout() {
     const endChair = new Sprite(chairFront)
     endChair.position.set(deskWidth - 8, -38)
 
+    endCharacter.position.copyFrom(endChair.position)
+
     upperWorkstations.addChildAt(endChair, 0)
-    upperWorkstations.addChildAt(endDesk, 1)
+    upperWorkstations.addChildAt(endCharacter, 1)
+    upperWorkstations.addChildAt(endDesk, 2)
     upperWorkstations.addChild(endPC)
 
 
