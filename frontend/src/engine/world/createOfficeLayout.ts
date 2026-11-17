@@ -1,5 +1,7 @@
 import { Assets, Container, Graphics, Rectangle, Texture, TilingSprite } from 'pixi.js'
 
+import { createFurnitureLayout } from './createFurnitureLayout'
+
 
 // 전체 오피스 맵의 크기 정의: 45칸 x 40칸, 각 칸은 16px (타일 크기)
 export const OFFICE_MAP_SIZE = {
@@ -11,12 +13,13 @@ export const OFFICE_MAP_SIZE = {
 export async function createOfficeLayout() {
     const base = `${import.meta.env.BASE_URL}assets/`
 
-    const [floorTexture, wallAtlas, plainFloor, gridFloor, checkFloor] = await Promise.all([
+    const [floorTexture, wallAtlas, plainFloor, gridFloor, checkFloor, furniture] = await Promise.all([
         Assets.load<Texture>(`${base}floors/floor_6.png`),
         Assets.load<Texture>(`${base}walls/wall_0.png`),
         Assets.load<Texture>(`${base}floors/floor_0.png`),
         Assets.load<Texture>(`${base}floors/floor_3.png`),
         Assets.load<Texture>(`${base}floors/floor_7.png`),
+        createFurnitureLayout(),
     ])
 
     // 픽셀 필터 설정
@@ -129,8 +132,8 @@ export async function createOfficeLayout() {
     }
 
 
-    // // 공용 바닥 위에 방별 바닥을 깔고, 바닥 경계가 벽 아래에 오도록 벽을 마지막에 추가
-    office.addChild(floor, roomFloors, wallFaces, wallEdges)
+    // 공용 바닥 위에 방별 바닥을 깔고, 바닥 경계가 벽 아래에 오도록 벽을 마지막에 추가
+    office.addChild(floor, roomFloors, furniture, wallFaces, wallEdges)
 
     return office
 }
