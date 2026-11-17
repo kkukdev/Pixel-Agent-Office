@@ -6,17 +6,19 @@ export async function createFurnitureLayout() {
     const base = `${import.meta.env.BASE_URL}assets/`
 
     // 가구 텍스처 로드
-    const [deskFront, deskSide, pcSide, pcBack, chairFront, chairSide] = await Promise.all([
+    const [deskFront, deskSide, pcFront, pcSide, pcBack, chairFront, chairSide, chairBack] = await Promise.all([
         Assets.load<Texture>(`${base}furniture/DESK/DESK_FRONT.png`),
         Assets.load<Texture>(`${base}furniture/DESK/DESK_SIDE.png`),
+        Assets.load<Texture>(`${base}furniture/PC/PC_FRONT_ON_1.png`),
         Assets.load<Texture>(`${base}furniture/PC/PC_SIDE.png`),
         Assets.load<Texture>(`${base}furniture/PC/PC_BACK.png`),
         Assets.load<Texture>(`${base}furniture/WOODEN_CHAIR/WOODEN_CHAIR_FRONT.png`),
         Assets.load<Texture>(`${base}furniture/WOODEN_CHAIR/WOODEN_CHAIR_SIDE.png`),
+        Assets.load<Texture>(`${base}furniture/WOODEN_CHAIR/WOODEN_CHAIR_BACK.png`),
     ])
 
     // 픽셀 필터 설정
-    for (const texture of [deskFront, deskSide, pcSide, pcBack, chairFront, chairSide]) {
+    for (const texture of [deskFront, deskSide, pcFront, pcSide, pcBack, chairFront, chairSide, chairBack]) {
         texture.source.scaleMode = 'nearest'
     }
 
@@ -97,7 +99,39 @@ export async function createFurnitureLayout() {
     upperWorkstations.addChild(endPC)
 
 
+    // 프로젝트실 책상 및 의자 배치
+    const projectWorkstations = new Container()
+    projectWorkstations.position.set(55, 462)
+
+    const projectDeskWidth = 70
+    const projectDeskHeight = 58
+
+    for (const x of [0, 64]) {
+        for (const isBottom of [false, true]) {
+            const y = isBottom ? 38 : 12
+            const centerX = x + projectDeskWidth / 2
+
+            const desk = new Sprite(deskFront)
+            desk.width = projectDeskWidth
+            desk.height = projectDeskHeight
+            desk.position.set(x, y)
+
+            const pc = new Sprite(isBottom ? pcFront : pcBack)
+            pc.position.set(centerX - pc.width / 2, y + (isBottom ? 12 : 19))
+
+            const chair = new Sprite(isBottom ? chairBack : chairFront)
+            chair.position.set(centerX - chair.width / 2, y + (isBottom ? 41 : -5))
+
+            if (isBottom) {
+                projectWorkstations.addChild(desk, pc, chair)
+            } else {
+                projectWorkstations.addChild(chair, desk, pc)
+            }
+        }
+    }
+
+
     // 가구 컨테이너에 배치
-    furniture.addChild(lowerWorkstations, upperWorkstations)
+    furniture.addChild(lowerWorkstations, upperWorkstations, projectWorkstations)
     return furniture
 }
