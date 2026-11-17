@@ -6,7 +6,7 @@ export async function createFurnitureLayout() {
     const base = `${import.meta.env.BASE_URL}assets/`
 
     // 가구 텍스처 로드
-    const [deskFront, deskSide, pcFront, pcSide, pcBack, chairFront, chairSide, chairBack] = await Promise.all([
+    const [deskFront, deskSide, pcFront, pcSide, pcBack, chairFront, chairSide, chairBack, meetingChairFront, meetingChairSide] = await Promise.all([
         Assets.load<Texture>(`${base}furniture/DESK/DESK_FRONT.png`),
         Assets.load<Texture>(`${base}furniture/DESK/DESK_SIDE.png`),
         Assets.load<Texture>(`${base}furniture/PC/PC_FRONT_ON_1.png`),
@@ -15,10 +15,17 @@ export async function createFurnitureLayout() {
         Assets.load<Texture>(`${base}furniture/WOODEN_CHAIR/WOODEN_CHAIR_FRONT.png`),
         Assets.load<Texture>(`${base}furniture/WOODEN_CHAIR/WOODEN_CHAIR_SIDE.png`),
         Assets.load<Texture>(`${base}furniture/WOODEN_CHAIR/WOODEN_CHAIR_BACK.png`),
+        Assets.load<Texture>(`${base}furniture/CUSHIONED_CHAIR/CUSHIONED_CHAIR_FRONT.png`),
+        Assets.load<Texture>(`${base}furniture/CUSHIONED_CHAIR/CUSHIONED_CHAIR_SIDE.png`),
     ])
 
     // 픽셀 필터 설정
-    for (const texture of [deskFront, deskSide, pcFront, pcSide, pcBack, chairFront, chairSide, chairBack]) {
+    for (const texture of [
+        deskFront, deskSide,
+        pcFront, pcSide, pcBack,
+        chairFront, chairSide, chairBack,
+        meetingChairFront, meetingChairSide
+    ]) {
         texture.source.scaleMode = 'nearest'
     }
 
@@ -131,7 +138,54 @@ export async function createFurnitureLayout() {
     }
 
 
+    // 회의실 테이블 및 의자 배치
+    const meetingArea = new Container()
+    meetingArea.position.set(560, 80)
+
+    // 회의실 테이블 설정 (텍스처, 크기)
+    // - 업무석과 같은 크기의 책상 6개를 2열 × 3행으로 붙여 회의 테이블을 구성
+    const tableWidth = deskWidth * 2
+
+    // 회의실 의자 설정 (텍스처, 위치)
+    // - 회의실 의자는 회의실 테이블을 기준으로 위치 계산
+    const endMeetingChair = new Sprite(meetingChairFront)
+    endMeetingChair.position.set((tableWidth - endMeetingChair.width) / 2, 0)
+
+    meetingArea.addChild(endMeetingChair)
+
+    for (let rowIndex = 0; rowIndex < 3; rowIndex++) {
+        const rowY = rowIndex * rowPitch
+
+        const leftDesk = new Sprite(deskSide)
+        leftDesk.width = deskWidth
+        leftDesk.height = deskHeight
+        leftDesk.position.set(0, rowY)
+
+        const rightDesk = new Sprite(deskSide)
+        rightDesk.width = deskWidth
+        rightDesk.height = deskHeight
+        rightDesk.scale.x *= -1
+        rightDesk.position.set(tableWidth, rowY)
+
+        meetingArea.addChild(leftDesk, rightDesk)
+
+        // 각 책상의 바깥쪽에 의자 두 개를 배치
+        for (const offsetY of [23, 49]) {
+            const y = rowY + offsetY
+
+            const leftChair = new Sprite(meetingChairSide)
+            leftChair.position.set(-14, y)
+
+            const rightChair = new Sprite(meetingChairSide)
+            rightChair.scale.x = -1
+            rightChair.position.set(tableWidth + 14, y)
+
+            meetingArea.addChild(leftChair, rightChair)
+        }
+    }
+
+
     // 가구 컨테이너에 배치
-    furniture.addChild(lowerWorkstations, upperWorkstations, projectWorkstations)
+    furniture.addChild(lowerWorkstations, upperWorkstations, projectWorkstations, meetingArea)
     return furniture
 }
