@@ -112,6 +112,7 @@ export async function createFurnitureLayout() {
 
     seats.push({
         id: 'central-upper-end',
+        facing: 'down',
         occupantLayer: endOccupantLayer,
     })
 
@@ -129,7 +130,7 @@ export async function createFurnitureLayout() {
     const projectDeskWidth = 70
     const projectDeskHeight = 58
 
-    for (const x of [0, 64]) {
+    for (const [column, x] of [0, 64].entries()) {
         for (const isBottom of [false, true]) {
             const y = isBottom ? 38 : 12
             const centerX = x + projectDeskWidth / 2
@@ -144,11 +145,20 @@ export async function createFurnitureLayout() {
 
             const chair = new Sprite(isBottom ? chairBack : chairFront)
             chair.position.set(centerX - chair.width / 2, y + (isBottom ? 41 : -5))
+            
+            const occupantLayer = new Container()
+            occupantLayer.position.copyFrom(chair.position)
+
+            seats.push({
+                id: `project-${column + 1}-${isBottom ? 'bottom' : 'top'}`,
+                facing: isBottom ? 'up' : 'down',
+                occupantLayer,
+            })
 
             if (isBottom) {
-                projectWorkstations.addChild(desk, pc, chair)
+                projectWorkstations.addChild(desk, pc, occupantLayer, chair)
             } else {
-                projectWorkstations.addChild(chair, desk, pc)
+                projectWorkstations.addChild(chair, occupantLayer, desk, pc)
             }
         }
     }

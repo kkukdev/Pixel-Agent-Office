@@ -26,8 +26,8 @@ export async function createOfficeLayout() {
     const { container: furniture, seats } = furnitureLayout
 
     try {
-        for (const seat of seats) {
-            const character = await createOfficeCharacter()
+        for (const [index, seat] of seats.entries()) {
+            const character = await createOfficeCharacter(index % 6, seat.facing)
             seat.occupantLayer.addChild(character)
         }
     } catch (error) {
