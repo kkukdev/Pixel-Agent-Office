@@ -9,14 +9,24 @@ export async function createOfficeCharacter(appearance: number, facing: OfficeFa
     )
     sheet.source.scaleMode = 'nearest'
 
+    const frameY: Record<OfficeFacing, number> = {
+        down: 0,
+        up: 32,
+        left: 64,
+        right: 64,
+    }
 
-    // 시트의 첫 행은 아래를, 둘째 행은 위를 보는 프레임
+    // 첫째 행은 아래, 둘째 행은 위, 셋째 행은 오른쪽을 보는 프레임
     const frame = new Texture({
         source: sheet.source,
-        frame: new Rectangle(16, facing === 'down' ? 0 : 32, 16, 32),
+        frame: new Rectangle(16, frameY[facing], 16, 32),
     })
-
     const character = new Sprite(frame)
+
+    if (facing === 'left') {
+        character.anchor.x = 1
+        character.scale.x = -1
+    }
 
     // 캐릭터를 정리할 때 잘라낸 프레임을 함께 정리
     character.once('destroyed', () => frame.destroy())

@@ -1,7 +1,7 @@
 import type { Container } from 'pixi.js'
 
 
-export type OfficeFacing = 'up' | 'down'
+export type OfficeFacing = 'up' | 'down' | 'left' | 'right'
 
 export interface OfficeSeat {
     id: string

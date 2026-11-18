@@ -38,6 +38,7 @@ export async function createFurnitureLayout() {
 
     // 캐릭터를 앉힐 좌석 목록
     const seats: OfficeSeat[] = []
+    const sideSeats: OfficeSeat[] = []
 
 
     // 책상 크기 설정
@@ -47,7 +48,7 @@ export async function createFurnitureLayout() {
 
 
     // 중앙 업무 공간 배치 함수
-    function createSideWorkstations(x: number, y: number, rowCount: number) {
+    function createSideWorkstations(groupId: string, x: number, y: number, rowCount: number) {
         const workstation = new Container()
         workstation.position.set(x, y)
 
@@ -78,7 +79,16 @@ export async function createFurnitureLayout() {
                     chair.position.set(-16, 22)
                 }
 
-                row.addChild(desk, pc, chair)
+                const occupantLayer = new Container()
+                occupantLayer.position.set(chair.x + (isRight ? -14 : -2), chair.y)
+
+                sideSeats.push({
+                    id: `${groupId}-${rowIndex + 1}-${isRight ? 'right' : 'left'}`,
+                    facing: isRight ? 'left' : 'right',
+                    occupantLayer,
+                })
+
+                row.addChild(desk, pc, chair, occupantLayer)
             }
 
             workstation.addChild(row)
@@ -89,11 +99,9 @@ export async function createFurnitureLayout() {
 
 
     // 중앙 아래 책상 및 의자 배치
-    const lowerWorkstations = createSideWorkstations(322, 220, 3)
-
-
+    const lowerWorkstations = createSideWorkstations('central-lower', 322, 220, 3)
     // 중앙 위 책상 및 의자 배치
-    const upperWorkstations = createSideWorkstations(322, 76, 2)
+    const upperWorkstations = createSideWorkstations('central-upper', 322, 76, 2)
 
     // 위쪽 한자리 추가
     const endDesk = new Sprite(deskFront)
@@ -213,5 +221,5 @@ export async function createFurnitureLayout() {
 
     // 가구 컨테이너에 배치
     furniture.addChild(lowerWorkstations, upperWorkstations, projectWorkstations, meetingArea)
-    return { container: furniture, seats }
+    return { container: furniture, seats: [...seats, ...sideSeats] }
 }
