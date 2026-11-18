@@ -33,7 +33,7 @@ export function OfficeCanvas() {
 
                 initialized = true
 
-                const office = await createOfficeLayout()
+                const office = await createOfficeLayout(app.ticker)
                 if (disposed) {
                     office.destroy({ children: true })
                     return

@@ -1,4 +1,4 @@
-import { Assets, Container, Graphics, Rectangle, Texture, TilingSprite } from 'pixi.js'
+import { Assets, Container, Graphics, Rectangle, Texture, TilingSprite, Ticker  } from 'pixi.js'
 
 import { createFurnitureLayout } from './createFurnitureLayout'
 import { createOfficeCharacter } from './createOfficeCharacter'
@@ -11,7 +11,7 @@ export const OFFICE_MAP_SIZE = {
 }
 
 
-export async function createOfficeLayout() {
+export async function createOfficeLayout(ticker: Ticker) {
     const base = `${import.meta.env.BASE_URL}assets/`
 
     const [floorTexture, wallAtlas, plainFloor, gridFloor, checkFloor, furnitureLayout] = await Promise.all([
@@ -146,8 +146,57 @@ export async function createOfficeLayout() {
     }
 
 
+    const movingCharacters = new Container()
     // 공용 바닥 위에 방별 바닥을 깔고, 바닥 경계가 벽 아래에 오도록 벽을 마지막에 추가
-    office.addChild(floor, roomFloors, furniture, wallFaces, wallEdges)
+    office.addChild(floor, roomFloors, furniture, movingCharacters, wallFaces, wallEdges)
+
+    const endSeat = seats.find((seat) => seat.id === 'central-upper-end')
+    const character = endSeat?.occupantLayer.children[0]
+
+    if (character) {
+        character.eventMode = 'static'
+        character.cursor = 'pointer'
+
+        character.once('pointertap', () => {
+            character.cursor = 'default'
+
+            // 부모를 바꿔도 화면상의 현재 위치를 유지
+            movingCharacters.reparentChild(character)
+
+            // 먼저 책상 위쪽으로 빠져나온 뒤 왼쪽 통로로 이동
+            const waypoints = [
+                { x: character.x, y: 26 },
+                { x: 280, y: 26 },
+            ]
+            const speed = 80 // 초당 이동 거리(px)
+            let waypointIndex = 0
+
+            const updateMovement = (frame: Ticker) => {
+                const target = waypoints[waypointIndex]
+                const dx = target.x - character.x
+                const dy = target.y - character.y
+                const distance = Math.hypot(dx, dy)
+                const step = speed * frame.deltaMS / 1000
+
+                if (distance <= step) {
+                    character.position.set(target.x, target.y)
+                    waypointIndex++
+
+                    if (waypointIndex === waypoints.length) {
+                        ticker.remove(updateMovement)
+                        ticker.stop()
+                    }
+                    return
+                }
+
+                character.x += dx / distance * step
+                character.y += dy / distance * step
+            }
+
+            ticker.add(updateMovement)
+            ticker.start()
+        })
+    }
 
     return office
 }
