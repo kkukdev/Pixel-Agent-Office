@@ -1,14 +1,14 @@
 import { Assets, Container, Sprite, Texture } from 'pixi.js'
 
-import { createOfficeCharacter } from './createOfficeCharacter'
+import type { OfficeSeat } from './officeSeat'
 
 
 // 오피스에 배치할 가구 레이아웃 생성
 export async function createFurnitureLayout() {
     const base = `${import.meta.env.BASE_URL}assets/`
 
-    // 가구 텍스처 및 캐릭터 로드
-    const [deskFront, deskSide, pcFront, pcSide, pcBack, chairFront, chairSide, chairBack, meetingChairFront, meetingChairSide, endCharacter] = await Promise.all([
+    // 가구 텍스처 로드
+    const [deskFront, deskSide, pcFront, pcSide, pcBack, chairFront, chairSide, chairBack, meetingChairFront, meetingChairSide] = await Promise.all([
         Assets.load<Texture>(`${base}furniture/DESK/DESK_FRONT.png`),
         Assets.load<Texture>(`${base}furniture/DESK/DESK_SIDE.png`),
         Assets.load<Texture>(`${base}furniture/PC/PC_FRONT_ON_1.png`),
@@ -19,7 +19,6 @@ export async function createFurnitureLayout() {
         Assets.load<Texture>(`${base}furniture/WOODEN_CHAIR/WOODEN_CHAIR_BACK.png`),
         Assets.load<Texture>(`${base}furniture/CUSHIONED_CHAIR/CUSHIONED_CHAIR_FRONT.png`),
         Assets.load<Texture>(`${base}furniture/CUSHIONED_CHAIR/CUSHIONED_CHAIR_SIDE.png`),
-        createOfficeCharacter(),
     ])
 
     // 픽셀 필터 설정
@@ -35,6 +34,10 @@ export async function createFurnitureLayout() {
 
     // 가구 컨테이너 생성
     const furniture = new Container()
+
+
+    // 캐릭터를 앉힐 좌석 목록
+    const seats: OfficeSeat[] = []
 
 
     // 책상 크기 설정
@@ -104,10 +107,17 @@ export async function createFurnitureLayout() {
     const endChair = new Sprite(chairFront)
     endChair.position.set(deskWidth - 8, -38)
 
-    endCharacter.position.copyFrom(endChair.position)
+    const endOccupantLayer = new Container()
+    endOccupantLayer.position.copyFrom(endChair.position)
 
+    seats.push({
+        id: 'central-upper-end',
+        occupantLayer: endOccupantLayer,
+    })
+
+    // 앉은 캐릭터가 의자 앞에 보이고 하체는 책상에 가려지도록 순서 조정
     upperWorkstations.addChildAt(endChair, 0)
-    upperWorkstations.addChildAt(endCharacter, 1)
+    upperWorkstations.addChildAt(endOccupantLayer, 1)
     upperWorkstations.addChildAt(endDesk, 2)
     upperWorkstations.addChild(endPC)
 
@@ -193,5 +203,5 @@ export async function createFurnitureLayout() {
 
     // 가구 컨테이너에 배치
     furniture.addChild(lowerWorkstations, upperWorkstations, projectWorkstations, meetingArea)
-    return furniture
+    return { container: furniture, seats }
 }

@@ -1,6 +1,7 @@
 import { Assets, Container, Graphics, Rectangle, Texture, TilingSprite } from 'pixi.js'
 
 import { createFurnitureLayout } from './createFurnitureLayout'
+import { createOfficeCharacter } from './createOfficeCharacter'
 
 
 // 전체 오피스 맵의 크기 정의: 45칸 x 40칸, 각 칸은 16px (타일 크기)
@@ -13,7 +14,7 @@ export const OFFICE_MAP_SIZE = {
 export async function createOfficeLayout() {
     const base = `${import.meta.env.BASE_URL}assets/`
 
-    const [floorTexture, wallAtlas, plainFloor, gridFloor, checkFloor, furniture] = await Promise.all([
+    const [floorTexture, wallAtlas, plainFloor, gridFloor, checkFloor, furnitureLayout] = await Promise.all([
         Assets.load<Texture>(`${base}floors/floor_6.png`),
         Assets.load<Texture>(`${base}walls/wall_0.png`),
         Assets.load<Texture>(`${base}floors/floor_0.png`),
@@ -21,6 +22,19 @@ export async function createOfficeLayout() {
         Assets.load<Texture>(`${base}floors/floor_7.png`),
         createFurnitureLayout(),
     ])
+
+    const { container: furniture, seats } = furnitureLayout
+
+    try {
+        for (const seat of seats) {
+            const character = await createOfficeCharacter()
+            seat.occupantLayer.addChild(character)
+        }
+    } catch (error) {
+        // 캐릭터 로딩에 실패하면 앞서 좌석에 붙인 캐릭터도 가구와 함께 정리
+        furniture.destroy({ children: true })
+        throw error
+    }
 
     // 픽셀 필터 설정
     for (const texture of [floorTexture, wallAtlas, plainFloor, gridFloor, checkFloor]) {
