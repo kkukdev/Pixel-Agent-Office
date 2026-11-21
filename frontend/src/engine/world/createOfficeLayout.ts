@@ -156,23 +156,40 @@ export async function createOfficeLayout(ticker: Ticker) {
     // 공용 바닥 위에 방별 바닥을 깔고, 바닥 경계가 벽 아래에 오도록 벽을 마지막에 추가
     office.addChild(floor, roomFloors, furniture, movingCharacters, wallFaces, wallEdges)
 
-    if (endCharacter) {
+    const endSeat = seats.find((seat) => seat.id === 'central-upper-end')
+
+    if (endCharacter && endSeat) {
         const { sprite: character, setPose } = endCharacter
+        const { occupantLayer, facing: seatedFacing } = endSeat
+        let isMoving = false
 
         character.eventMode = 'static'
         character.cursor = 'pointer'
 
-        character.once('pointertap', () => {
+        character.on('pointertap', () => {
+            if (isMoving) return
+
+            isMoving = true
             character.cursor = 'default'
 
+            const returningToSeat = character.parent === movingCharacters
+            const seatPosition = movingCharacters.toLocal({ x: 0, y: 0 }, occupantLayer)
+
             // 부모를 바꿔도 화면상의 현재 위치를 유지
-            movingCharacters.reparentChild(character)
+            if (!returningToSeat) {
+                movingCharacters.reparentChild(character)
+            }
 
             // 먼저 책상 위쪽으로 빠져나온 뒤 왼쪽 통로로 이동
-            const waypoints = [
-                { x: character.x, y: 26, facing: 'up' },
-                { x: 280, y: 26, facing: 'left' },
-            ] as const
+            const waypoints = returningToSeat
+                ? ([
+                    { x: seatPosition.x, y: 26, facing: 'right' },
+                    { x: seatPosition.x, y: seatPosition.y, facing: 'down' },
+                ] as const)
+                : ([
+                    { x: seatPosition.x, y: 26, facing: 'up' },
+                    { x: 280, y: 26, facing: 'left' },
+                ] as const)
             const walkColumns = [0, 1, 2, 1] as const
             const speed = 80 // 초당 이동 거리(px)
             let waypointIndex = 0
@@ -196,9 +213,17 @@ export async function createOfficeLayout(ticker: Ticker) {
                     waypointIndex++
 
                     if (waypointIndex === waypoints.length) {
-                        setPose(target.facing)
+                        if (returningToSeat) {
+                            occupantLayer.addChild(character)
+                            character.position.set(0, 0)
+                        }
+
+                        setPose(returningToSeat ? seatedFacing : target.facing)
                         ticker.remove(updateMovement)
                         ticker.stop()
+
+                        character.cursor = 'pointer'
+                        isMoving = false
                     }
                     return
                 }
