@@ -40,3 +40,130 @@ export function canWalkPath(
 
     return true
 }
+
+
+interface PathNode {
+    point: PointData
+    cost: number
+    estimate: number
+    previous?: PathNode
+}
+
+
+function connectOrthogonally(
+    from: PointData,
+    to: PointData,
+    floorBounds: Rectangle,
+    walls: readonly Rectangle[],
+): PointData[] | null {
+    if (from.x === to.x || from.y === to.y) {
+        return canWalkPath(from, [to], floorBounds, walls) ? [to] : null
+    }
+
+    const corners = [
+        { x: from.x, y: to.y },
+        { x: to.x, y: from.y },
+    ]
+
+    for (const corner of corners) {
+        const path = [corner, to]
+        if (canWalkPath(from, path, floorBounds, walls)) return path
+    }
+
+    return null
+}
+
+
+/**
+ * 시작 발 위치에서 목적지까지 벽을 피하는 경유점을 찾기
+ * 반환한 경로에는 목적지가 포함되며, 도달할 수 없으면 null을 반환
+ *
+ * @param start
+ * @param goal
+ * @param floorBounds
+ * @param walls
+ */
+export function findOfficePath(
+    start: PointData,
+    goal: PointData,
+    floorBounds: Rectangle,
+    walls: readonly Rectangle[],
+): PointData[] | null {
+    const direct = connectOrthogonally(start, goal, floorBounds, walls)
+    if (direct) return direct
+
+    const gridSize = 8
+    const directions = [[8, 0], [-8, 0], [0, 8], [0, -8]] as const
+    const keyOf = ({ x, y }: PointData) => `${x},${y}`
+    const distanceToGoal = ({ x, y }: PointData) => Math.hypot(goal.x - x, goal.y - y)
+    const bestCost = new Map<string, number>([[keyOf(start), 0]])
+    const open: PathNode[] = [
+        { point: start, cost: 0, estimate: distanceToGoal(start) },
+    ]
+
+    while (open.length > 0) {
+        // 지금까지 이동한 거리와 목적지까지의 예상 거리가 가장 작은 점부터 확인
+        open.sort((a, b) => b.estimate - a.estimate)
+
+        const current = open.pop()
+
+        if (!current) break
+        if (current.cost !== bestCost.get(keyOf(current.point))) continue
+
+        const goalPath = distanceToGoal(current.point) <= gridSize
+            ? connectOrthogonally(current.point, goal, floorBounds, walls)
+            : null
+
+        if (goalPath) {
+            const points: PointData[] = []
+
+            for (let node = current; node.previous; node = node.previous) {
+                points.push(node.point)
+            }
+
+            points.reverse()
+            points.push(...goalPath)
+
+            const simplified: PointData[] = []
+            let from = start
+
+            for (let index = 0; index < points.length;) {
+                let farthest = points.length - 1
+                let shortcut = connectOrthogonally(from, points[farthest], floorBounds, walls)
+
+                while (!shortcut && farthest > index) {
+                    farthest--
+                    shortcut = connectOrthogonally(from, points[farthest], floorBounds, walls)
+                }
+
+                if (!shortcut) return null
+
+                simplified.push(...shortcut)
+                from = points[farthest]
+                index = farthest + 1
+            }
+
+            return simplified
+        }
+
+        for (const [dx, dy] of directions) {
+            const next = { x: current.point.x + dx, y: current.point.y + dy }
+            const key = keyOf(next)
+            const cost = current.cost + gridSize
+
+            if (cost >= (bestCost.get(key) ?? Infinity)) continue
+            if (!canWalkPath(current.point, [next], floorBounds, walls)) continue
+
+            bestCost.set(key, cost)
+
+            open.push({
+                point: next,
+                cost,
+                estimate: cost + distanceToGoal(next),
+                previous: current,
+            })
+        }
+    }
+
+    return null
+}

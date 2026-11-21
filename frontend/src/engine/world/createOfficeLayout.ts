@@ -1,8 +1,10 @@
 import { Assets, Container, Graphics, Rectangle, Texture, TilingSprite, Ticker  } from 'pixi.js'
 
-import { canWalkPath } from './officeNavigation'
+import { findOfficePath } from './officeNavigation'
 import { createFurnitureLayout } from './createFurnitureLayout'
 import { createOfficeCharacter } from './createOfficeCharacter'
+
+import type { OfficeFacing } from './officeSeat'
 
 
 // 전체 오피스 맵의 크기 정의: 45칸 x 40칸, 각 칸은 16px (타일 크기)
@@ -163,6 +165,7 @@ export async function createOfficeLayout(ticker: Ticker) {
     const floorBounds = new Rectangle(floor.x, floor.y, floor.width, floor.height)
     // 벽 구간에서 충돌 범위를 계산
     // 출입구는 벽 구간 사이의 빈 공간
+    const wallClearance = 8
     const wallBounds = [
         ...horizontalWalls.map(([left, right, y, height]) =>
             new Rectangle(left, y - height, right - left, height + 2),
@@ -170,11 +173,11 @@ export async function createOfficeLayout(ticker: Ticker) {
         ...verticalWalls.map(([x, top, bottom]) =>
             new Rectangle(x - 4, top, 9, bottom - top),
         ),
-    ]
+    ].map((wall) => wall.pad(wallClearance))
 
     const movingCharacters = new Container()
     // 공용 바닥 위에 방별 바닥을 깔고, 바닥 경계가 벽 아래에 오도록 벽을 마지막에 추가
-    office.addChild(floor, roomFloors, furniture, movingCharacters, wallFaces, wallEdges)
+    office.addChild(floor, roomFloors, furniture, wallFaces, wallEdges, movingCharacters)
 
     const endSeat = seats.find((seat) => seat.id === 'central-upper-end')
 
@@ -192,16 +195,17 @@ export async function createOfficeLayout(ticker: Ticker) {
             const returningToSeat = character.parent === movingCharacters
             const seatPosition = movingCharacters.toLocal({ x: 0, y: 0 }, occupantLayer)
 
+            // 스프라이트 좌표 (220, 270)는 발 위치 (228, 300)에 해당
+            const ownerDoorway = { x: 220, y: 270 }
+            const aboveSeat = { x: seatPosition.x, y: 26 }
+            const aisleCorner = { x: 280, y: 26 }
+            const seatTarget = { x: seatPosition.x, y: seatPosition.y }
+            const ownerRoomTarget = { x: 120, y: 26 }
+
             // 먼저 책상 위쪽으로 빠져나온 뒤 왼쪽 통로로 이동
-            const waypoints = returningToSeat
-                ? ([
-                    { x: seatPosition.x, y: 26, facing: 'right' },
-                    { x: seatPosition.x, y: seatPosition.y, facing: 'down' },
-                ] as const)
-                : ([
-                    { x: seatPosition.x, y: 26, facing: 'up' },
-                    { x: 280, y: 26, facing: 'left' },
-                ] as const)
+            const requestedWaypoints = returningToSeat
+                ? [ownerDoorway, aisleCorner, aboveSeat, seatTarget]
+                : [aboveSeat, aisleCorner, ownerDoorway, ownerRoomTarget]
 
             const start = returningToSeat ? character.position : seatPosition
             // 16×32px 스프라이트의 왼쪽 위 좌표를 발 중앙 근처로 옮겨 충돌을 검사
@@ -210,9 +214,32 @@ export async function createOfficeLayout(ticker: Ticker) {
                 y: y + 30,
             })
 
-            if (!canWalkPath(toFootPoint(start), waypoints.map(toFootPoint), floorBounds, wallBounds)) {
-                return
+            const waypoints: { x: number; y: number; facing: OfficeFacing }[] = []
+            let from = toFootPoint(start)
+
+            for (const requestedPoint of requestedWaypoints) {
+                const goal = toFootPoint(requestedPoint)
+                const path = findOfficePath(from, goal, floorBounds, wallBounds)
+
+                if (!path) return
+
+                for (const point of path) {
+                    const dx = point.x - from.x
+                    const dy = point.y - from.y
+
+                    if (dx === 0 && dy === 0) continue
+
+                    const facing: OfficeFacing = Math.abs(dx) > Math.abs(dy)
+                        ? (dx < 0 ? 'left' : 'right')
+                        : (dy < 0 ? 'up' : 'down')
+
+                    waypoints.push({ x: point.x - 8, y: point.y - 30, facing })
+
+                    from = point
+                }
             }
+
+            if (waypoints.length === 0) return
 
             isMoving = true
             character.cursor = 'default'
