@@ -1,5 +1,6 @@
 import { Assets, Container, Graphics, Rectangle, Texture, TilingSprite, Ticker  } from 'pixi.js'
 
+import { canWalkPath } from './officeNavigation'
 import { createFurnitureLayout } from './createFurnitureLayout'
 import { createOfficeCharacter } from './createOfficeCharacter'
 
@@ -11,6 +12,14 @@ export const OFFICE_MAP_SIZE = {
 }
 
 
+/**
+ * 바닥, 벽, 가구를 배치하고 좌석에 캐릭터를 연결해 오피스 장면을 생성
+ * 중앙 위쪽 끝 좌석 캐릭터에는 좌석과 통로를 왕복하는 클릭 동작 연결
+ *
+ * @param ticker    캐릭터가 이동하는 동안 위치와 걷기 프레임을 갱신하는 ticker
+ *
+ * @returns         캔버스에 추가할 오피스 컨테이너
+ */
 export async function createOfficeLayout(ticker: Ticker) {
     const base = `${import.meta.env.BASE_URL}assets/`
 
@@ -151,6 +160,17 @@ export async function createOfficeLayout(ticker: Ticker) {
         wallEdges.rect(x - 2, top, 2, height).fill(0xadbdc8)
     }
 
+    const floorBounds = new Rectangle(floor.x, floor.y, floor.width, floor.height)
+    // 벽 구간에서 충돌 범위를 계산
+    // 출입구는 벽 구간 사이의 빈 공간
+    const wallBounds = [
+        ...horizontalWalls.map(([left, right, y, height]) =>
+            new Rectangle(left, y - height, right - left, height + 2),
+        ),
+        ...verticalWalls.map(([x, top, bottom]) =>
+            new Rectangle(x - 4, top, 9, bottom - top),
+        ),
+    ]
 
     const movingCharacters = new Container()
     // 공용 바닥 위에 방별 바닥을 깔고, 바닥 경계가 벽 아래에 오도록 벽을 마지막에 추가
@@ -169,16 +189,8 @@ export async function createOfficeLayout(ticker: Ticker) {
         character.on('pointertap', () => {
             if (isMoving) return
 
-            isMoving = true
-            character.cursor = 'default'
-
             const returningToSeat = character.parent === movingCharacters
             const seatPosition = movingCharacters.toLocal({ x: 0, y: 0 }, occupantLayer)
-
-            // 부모를 바꿔도 화면상의 현재 위치를 유지
-            if (!returningToSeat) {
-                movingCharacters.reparentChild(character)
-            }
 
             // 먼저 책상 위쪽으로 빠져나온 뒤 왼쪽 통로로 이동
             const waypoints = returningToSeat
@@ -190,11 +202,38 @@ export async function createOfficeLayout(ticker: Ticker) {
                     { x: seatPosition.x, y: 26, facing: 'up' },
                     { x: 280, y: 26, facing: 'left' },
                 ] as const)
+
+            const start = returningToSeat ? character.position : seatPosition
+            // 16×32px 스프라이트의 왼쪽 위 좌표를 발 중앙 근처로 옮겨 충돌을 검사
+            const toFootPoint = ({ x, y }: { x: number; y: number }) => ({
+                x: x + 8,
+                y: y + 30,
+            })
+
+            if (!canWalkPath(toFootPoint(start), waypoints.map(toFootPoint), floorBounds, wallBounds)) {
+                return
+            }
+
+            isMoving = true
+            character.cursor = 'default'
+
+            // 부모를 바꿔도 화면상의 현재 위치를 유지
+            if (!returningToSeat) {
+                movingCharacters.reparentChild(character)
+            }
+
             const walkColumns = [0, 1, 2, 1] as const
             const speed = 80 // 초당 이동 거리(px)
             let waypointIndex = 0
             let walkElapsedMs = 0
 
+
+            /**
+             * 이전 프레임 이후 지난 시간만큼 캐릭터를 다음 경유점으로 이동
+             * 이동 방향에 맞춰 걷기 프레임을 갱신하고, 마지막 경유점에 도착하면 정지 자세로 전환
+             *
+             * 좌석으로 돌아온 경우 착석 레이어에 다시 결합
+             */
             const updateMovement = (frame: Ticker) => {
                 const target = waypoints[waypointIndex]
                 const dx = target.x - character.x
