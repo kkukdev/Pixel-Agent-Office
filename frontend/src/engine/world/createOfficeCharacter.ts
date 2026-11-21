@@ -20,16 +20,27 @@ export async function createOfficeCharacter(appearance: number, facing: OfficeFa
     const frame = new Texture({
         source: sheet.source,
         frame: new Rectangle(16, frameY[facing], 16, 32),
+        dynamic: true,
     })
-    const character = new Sprite(frame)
+    const sprite = new Sprite(frame)
 
-    if (facing === 'left') {
-        character.anchor.x = 1
-        character.scale.x = -1
+    function setPose(direction: OfficeFacing, column = 1) {
+        const x = column * 16
+        const y = frameY[direction]
+
+        if (frame.frame.x !== x || frame.frame.y !== y) {
+            frame.frame.x = x
+            frame.frame.y = y
+            frame.update()
+        }
+
+        // 좌우 반전해도 스프라이트가 같은 위치에 그려지도록 앵커를 맞춘다.
+        sprite.anchor.x = direction === 'left' ? 1 : 0
+        sprite.scale.x = direction === 'left' ? -1 : 1
     }
 
-    // 캐릭터를 정리할 때 잘라낸 프레임을 함께 정리
-    character.once('destroyed', () => frame.destroy())
+    setPose(facing)
+    sprite.once('destroyed', () => frame.destroy())
 
-    return character
+    return { sprite, setPose }
 }

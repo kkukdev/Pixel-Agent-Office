@@ -25,10 +25,16 @@ export async function createOfficeLayout(ticker: Ticker) {
 
     const { container: furniture, seats } = furnitureLayout
 
+    let endCharacter: Awaited<ReturnType<typeof createOfficeCharacter>> | undefined
+
     try {
         for (const [index, seat] of seats.entries()) {
             const character = await createOfficeCharacter(index % 6, seat.facing)
-            seat.occupantLayer.addChild(character)
+            seat.occupantLayer.addChild(character.sprite)
+
+            if (seat.id === 'central-upper-end') {
+                endCharacter = character
+            }
         }
     } catch (error) {
         // 캐릭터 로딩에 실패하면 앞서 좌석에 붙인 캐릭터도 가구와 함께 정리
@@ -150,10 +156,9 @@ export async function createOfficeLayout(ticker: Ticker) {
     // 공용 바닥 위에 방별 바닥을 깔고, 바닥 경계가 벽 아래에 오도록 벽을 마지막에 추가
     office.addChild(floor, roomFloors, furniture, movingCharacters, wallFaces, wallEdges)
 
-    const endSeat = seats.find((seat) => seat.id === 'central-upper-end')
-    const character = endSeat?.occupantLayer.children[0]
+    if (endCharacter) {
+        const { sprite: character, setPose } = endCharacter
 
-    if (character) {
         character.eventMode = 'static'
         character.cursor = 'pointer'
 
@@ -165,11 +170,13 @@ export async function createOfficeLayout(ticker: Ticker) {
 
             // 먼저 책상 위쪽으로 빠져나온 뒤 왼쪽 통로로 이동
             const waypoints = [
-                { x: character.x, y: 26 },
-                { x: 280, y: 26 },
-            ]
+                { x: character.x, y: 26, facing: 'up' },
+                { x: 280, y: 26, facing: 'left' },
+            ] as const
+            const walkColumns = [0, 1, 2, 1] as const
             const speed = 80 // 초당 이동 거리(px)
             let waypointIndex = 0
+            let walkElapsedMs = 0
 
             const updateMovement = (frame: Ticker) => {
                 const target = waypoints[waypointIndex]
@@ -178,11 +185,18 @@ export async function createOfficeLayout(ticker: Ticker) {
                 const distance = Math.hypot(dx, dy)
                 const step = speed * frame.deltaMS / 1000
 
+                walkElapsedMs += frame.deltaMS
+
+                const walkIndex = Math.floor(walkElapsedMs / 120) % walkColumns.length
+
+                setPose(target.facing, walkColumns[walkIndex])
+
                 if (distance <= step) {
                     character.position.set(target.x, target.y)
                     waypointIndex++
 
                     if (waypointIndex === waypoints.length) {
+                        setPose(target.facing)
                         ticker.remove(updateMovement)
                         ticker.stop()
                     }
