@@ -1,4 +1,4 @@
-import { Assets, Container, Sprite, Texture } from 'pixi.js'
+import { Assets, Container, Sprite, Texture, Rectangle } from 'pixi.js'
 
 import type { OfficeSeat } from './officeSeat'
 
@@ -39,6 +39,7 @@ export async function createFurnitureLayout() {
     // 캐릭터를 앉힐 좌석 목록
     const seats: OfficeSeat[] = []
     const sideSeats: OfficeSeat[] = []
+    const deskBounds: Rectangle[] = []
 
 
     // 책상 크기 설정
@@ -93,6 +94,17 @@ export async function createFurnitureLayout() {
 
             workstation.addChild(row)
         }
+
+        // 책상이 보이는 구간: Y = 11 ~ 59
+        const visibleTop = Math.round(deskHeight * 11 / 64)
+        const visibleBottom = Math.round(deskHeight * 59 / 64)
+
+        deskBounds.push(new Rectangle(
+            x,
+            y + visibleTop,
+            deskWidth * 2,
+            (rowCount - 1) * rowPitch + visibleBottom - visibleTop,
+        ))
 
         return workstation
     }
@@ -221,5 +233,5 @@ export async function createFurnitureLayout() {
 
     // 가구 컨테이너에 배치
     furniture.addChild(lowerWorkstations, upperWorkstations, projectWorkstations, meetingArea)
-    return { container: furniture, seats: [...seats, ...sideSeats] }
+    return { container: furniture, seats: [...seats, ...sideSeats], deskBounds }
 }

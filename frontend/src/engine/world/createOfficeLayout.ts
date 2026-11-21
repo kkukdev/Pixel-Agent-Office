@@ -34,7 +34,7 @@ export async function createOfficeLayout(ticker: Ticker) {
         createFurnitureLayout(),
     ])
 
-    const { container: furniture, seats } = furnitureLayout
+    const { container: furniture, seats, deskBounds } = furnitureLayout
 
     let endCharacter: Awaited<ReturnType<typeof createOfficeCharacter>> | undefined
 
@@ -175,6 +175,11 @@ export async function createOfficeLayout(ticker: Ticker) {
         ),
     ].map((wall) => wall.pad(wallClearance))
 
+    const blockedBounds = [
+        ...wallBounds,
+        ...deskBounds.map((desk) => desk.clone().pad(wallClearance)),
+    ]
+
     const movingCharacters = new Container()
     // 공용 바닥 위에 방별 바닥을 깔고, 바닥 경계가 벽 아래에 오도록 벽을 마지막에 추가
     office.addChild(floor, roomFloors, furniture, wallFaces, wallEdges, movingCharacters)
@@ -219,7 +224,7 @@ export async function createOfficeLayout(ticker: Ticker) {
 
             for (const requestedPoint of requestedWaypoints) {
                 const goal = toFootPoint(requestedPoint)
-                const path = findOfficePath(from, goal, floorBounds, wallBounds)
+                const path = findOfficePath(from, goal, floorBounds, blockedBounds)
 
                 if (!path) return
 
