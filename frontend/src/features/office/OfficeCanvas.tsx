@@ -1,6 +1,7 @@
 import { Application } from 'pixi.js'
 import { useEffect, useRef, useState } from "react"
 
+import { bindOfficeViewport } from './bindOfficeViewport'
 import { createOfficeLayout, OFFICE_MAP_SIZE } from '../../engine/world/createOfficeLayout'
 
 import type { OfficeControls } from '../../engine/world/createOfficeLayout'
@@ -14,6 +15,7 @@ export function OfficeCanvas({
     onOfficeReady: (controls: OfficeControls) => void
 }) {
     const hostRef = useRef<HTMLDivElement>(null)
+    const resetViewRef = useRef<(() => void) | null>(null)
     const [loadFailed, setLoadFailed] = useState(false)
 
     useEffect(() => {
@@ -22,8 +24,18 @@ export function OfficeCanvas({
         if (!host) return
 
         const app = new Application()
+
         let disposed = false
         let initialized = false
+        let viewport: ReturnType<typeof bindOfficeViewport> | undefined
+
+
+        function disposeViewport() {
+            viewport?.destroy()
+            viewport = undefined
+            resetViewRef.current = null
+        }
+
 
         async function mountCanvas() {
             try {
@@ -42,7 +54,9 @@ export function OfficeCanvas({
                 initialized = true
 
                 const { office, seatOptions, playMovementDemo } =
-                    await createOfficeLayout(app.ticker, onSeatSelect)
+                    await createOfficeLayout(app.ticker, (seatId) => {
+                        if (!viewport?.didDrag()) onSeatSelect(seatId)
+                    })
                 if (disposed) {
                     office.destroy({ children: true })
                     return
@@ -50,6 +64,10 @@ export function OfficeCanvas({
 
                 app.stage.addChild(office)
                 host?.appendChild(app.canvas)
+
+                viewport = bindOfficeViewport(app, office)
+                resetViewRef.current = viewport.reset
+
                 app.render()
                 onOfficeReady({
                     seatOptions,
@@ -59,6 +77,8 @@ export function OfficeCanvas({
                 })
             } catch (error) {
                 if (disposed) return
+
+                disposeViewport()
 
                 if (initialized) {
                     app.destroy({ removeView: true }, { children: true })
@@ -75,6 +95,8 @@ export function OfficeCanvas({
         return () => {
             disposed = true
 
+            disposeViewport()
+
             if (initialized) {
                 app.destroy({removeView: true}, {children: true})
             }            
@@ -83,6 +105,11 @@ export function OfficeCanvas({
 
     return (
         <>
+            {!loadFailed && (
+                <button type="button" onClick={() => resetViewRef.current?.()}>
+                    전체 보기
+                </button>
+            )}
             <div className="office-canvas" ref={hostRef} aria-hidden="true" />
             {loadFailed && <p role="status">오피스 화면을 불러오지 못했습니다.</p>}
         </>
