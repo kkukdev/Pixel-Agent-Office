@@ -4,12 +4,13 @@ import { useState } from 'react'
 
 import { OfficeCanvas } from './features/office/OfficeCanvas'
 
-import type { OfficeSeatOption } from './engine/world/officeSeat'
+import type { OfficeControls } from './engine/world/createOfficeLayout'
 
 
 function App() {
   const [selectedSeatId, setSelectedSeatId] = useState<string | null>(null)
-  const [seatOptions, setSeatOptions] = useState<OfficeSeatOption[]>([])
+  const [officeControls, setOfficeControls] = useState<OfficeControls | null>(null)
+  const seatOptions = officeControls?.seatOptions ?? []
 
   return (
     <main className="pixel-agent-office">
@@ -20,7 +21,7 @@ function App() {
       <div className="office-layout">
         <section className="office-panel" aria-labelledby="office-title">
           <h2 id="office-title">오피스</h2>
-          <OfficeCanvas onSeatSelect={setSelectedSeatId} onSeatsReady={setSeatOptions} />
+          <OfficeCanvas onSeatSelect={setSelectedSeatId} onOfficeReady={setOfficeControls} />
         </section>
 
         <section className="office-panel" aria-labelledby="task-title">
@@ -37,6 +38,13 @@ function App() {
               <option key={id} value={id}>{label}</option>
             ))}
           </select>
+          <button
+            type="button"
+            disabled={!officeControls?.playMovementDemo}
+            onClick={() => officeControls?.playMovementDemo?.()}
+          >
+            끝자리 이동 시연
+          </button>
         </section>
       </div>
     </main>

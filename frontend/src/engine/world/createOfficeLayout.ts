@@ -4,8 +4,13 @@ import { findOfficePath } from './officeNavigation'
 import { createFurnitureLayout } from './createFurnitureLayout'
 import { createOfficeCharacter } from './createOfficeCharacter'
 
-import type { OfficeFacing } from './officeSeat'
+import type { OfficeFacing, OfficeSeatOption } from './officeSeat'
 
+
+export interface OfficeControls {
+    seatOptions: OfficeSeatOption[]
+    playMovementDemo: (() => void) | null
+}
 
 // 전체 오피스 맵의 크기 정의: 45칸 x 40칸, 각 칸은 16px (타일 크기)
 export const OFFICE_MAP_SIZE = {
@@ -195,12 +200,14 @@ export async function createOfficeLayout(
 
     const endSeat = seats.find((seat) => seat.id === 'central-upper-end')
 
+    let playMovementDemo: OfficeControls['playMovementDemo'] = null
+
     if (endCharacter && endSeat) {
         const { sprite: character, setPose } = endCharacter
         const { occupantLayer, facing: seatedFacing } = endSeat
         let isMoving = false
 
-        character.on('pointertap', () => {
+        playMovementDemo = () => {
             if (isMoving) return
 
             const returningToSeat = character.parent === movingCharacters
@@ -253,7 +260,6 @@ export async function createOfficeLayout(
             if (waypoints.length === 0) return
 
             isMoving = true
-            character.cursor = 'default'
 
             // 부모를 바꿔도 화면상의 현재 위치를 유지
             if (!returningToSeat) {
@@ -299,7 +305,6 @@ export async function createOfficeLayout(
                         ticker.remove(updateMovement)
                         ticker.stop()
 
-                        character.cursor = 'pointer'
                         isMoving = false
                     }
                     return
@@ -311,11 +316,12 @@ export async function createOfficeLayout(
 
             ticker.add(updateMovement)
             ticker.start()
-        })
+        }
     }
 
     return {
         office,
         seatOptions: seats.map(({ id, label }) => ({ id, label })),
+        playMovementDemo,
     }
 }

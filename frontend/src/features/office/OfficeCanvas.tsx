@@ -3,15 +3,15 @@ import { useEffect, useRef, useState } from "react"
 
 import { createOfficeLayout, OFFICE_MAP_SIZE } from '../../engine/world/createOfficeLayout'
 
-import type { OfficeSeatOption } from '../../engine/world/officeSeat'
+import type { OfficeControls } from '../../engine/world/createOfficeLayout'
 
 
 export function OfficeCanvas({
     onSeatSelect,
-    onSeatsReady,
+    onOfficeReady,
 }: {
     onSeatSelect: (seatId: string) => void
-    onSeatsReady: (seatOptions: OfficeSeatOption[]) => void
+    onOfficeReady: (controls: OfficeControls) => void
 }) {
     const hostRef = useRef<HTMLDivElement>(null)
     const [loadFailed, setLoadFailed] = useState(false)
@@ -41,7 +41,8 @@ export function OfficeCanvas({
 
                 initialized = true
 
-                const { office, seatOptions } = await createOfficeLayout(app.ticker, onSeatSelect)
+                const { office, seatOptions, playMovementDemo } =
+                    await createOfficeLayout(app.ticker, onSeatSelect)
                 if (disposed) {
                     office.destroy({ children: true })
                     return
@@ -50,7 +51,12 @@ export function OfficeCanvas({
                 app.stage.addChild(office)
                 host?.appendChild(app.canvas)
                 app.render()
-                onSeatsReady(seatOptions)
+                onOfficeReady({
+                    seatOptions,
+                    playMovementDemo: playMovementDemo && (() => {
+                        if (!disposed) playMovementDemo()
+                    }),
+                })
             } catch (error) {
                 if (disposed) return
 
@@ -73,7 +79,7 @@ export function OfficeCanvas({
                 app.destroy({removeView: true}, {children: true})
             }            
         }
-    }, [onSeatSelect, onSeatsReady])
+    }, [onSeatSelect, onOfficeReady])
 
     return (
         <>
