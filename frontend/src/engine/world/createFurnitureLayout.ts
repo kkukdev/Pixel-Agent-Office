@@ -49,7 +49,12 @@ export async function createFurnitureLayout() {
 
 
     // 중앙 업무 공간 배치 함수
-    function createSideWorkstations(groupId: string, x: number, y: number, rowCount: number) {
+    function createSideWorkstations(
+        groupId: string,
+        groupLabel: string,
+        x: number, y: number,
+        rowCount: number
+    ) {
         const workstation = new Container()
         workstation.position.set(x, y)
 
@@ -85,6 +90,7 @@ export async function createFurnitureLayout() {
 
                 sideSeats.push({
                     id: `${groupId}-${rowIndex + 1}-${isRight ? 'right' : 'left'}`,
+                    label: `${groupLabel} ${rowIndex + 1}행 ${isRight ? '오른쪽' : '왼쪽'}`,
                     facing: isRight ? 'left' : 'right',
                     occupantLayer,
                 })
@@ -111,9 +117,9 @@ export async function createFurnitureLayout() {
 
 
     // 중앙 아래 책상 및 의자 배치
-    const lowerWorkstations = createSideWorkstations('central-lower', 322, 220, 3)
+    const lowerWorkstations = createSideWorkstations('central-lower', '중앙 아래', 322, 220, 3)
     // 중앙 위 책상 및 의자 배치
-    const upperWorkstations = createSideWorkstations('central-upper', 322, 76, 2)
+    const upperWorkstations = createSideWorkstations('central-upper', '중앙 위', 322, 76, 2)
 
     // 위쪽 한자리 추가
     const endDesk = new Sprite(deskFront)
@@ -132,6 +138,7 @@ export async function createFurnitureLayout() {
 
     seats.push({
         id: 'central-upper-end',
+        label: '중앙 위쪽 끝자리',
         facing: 'down',
         occupantLayer: endOccupantLayer,
     })
@@ -171,6 +178,7 @@ export async function createFurnitureLayout() {
 
             seats.push({
                 id: `project-${column + 1}-${isBottom ? 'bottom' : 'top'}`,
+                label: `프로젝트실 ${column === 0 ? '왼쪽' : '오른쪽'} ${isBottom ? '아래' : '위'}`,
                 facing: isBottom ? 'up' : 'down',
                 occupantLayer,
             })

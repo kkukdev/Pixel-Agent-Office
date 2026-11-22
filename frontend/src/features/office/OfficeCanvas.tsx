@@ -3,13 +3,15 @@ import { useEffect, useRef, useState } from "react"
 
 import { createOfficeLayout, OFFICE_MAP_SIZE } from '../../engine/world/createOfficeLayout'
 
+import type { OfficeSeatOption } from '../../engine/world/officeSeat'
+
 
 export function OfficeCanvas({
     onSeatSelect,
     onSeatsReady,
 }: {
     onSeatSelect: (seatId: string) => void
-    onSeatsReady: (seatIds: string[]) => void
+    onSeatsReady: (seatOptions: OfficeSeatOption[]) => void
 }) {
     const hostRef = useRef<HTMLDivElement>(null)
     const [loadFailed, setLoadFailed] = useState(false)
@@ -39,7 +41,7 @@ export function OfficeCanvas({
 
                 initialized = true
 
-                const { office, seatIds } = await createOfficeLayout(app.ticker, onSeatSelect)
+                const { office, seatOptions } = await createOfficeLayout(app.ticker, onSeatSelect)
                 if (disposed) {
                     office.destroy({ children: true })
                     return
@@ -48,7 +50,7 @@ export function OfficeCanvas({
                 app.stage.addChild(office)
                 host?.appendChild(app.canvas)
                 app.render()
-                onSeatsReady(seatIds)
+                onSeatsReady(seatOptions)
             } catch (error) {
                 if (disposed) return
 

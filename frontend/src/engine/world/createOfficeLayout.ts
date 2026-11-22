@@ -314,5 +314,8 @@ export async function createOfficeLayout(
         })
     }
 
-    return { office, seatIds: seats.map((seat) => seat.id) }
+    return {
+        office,
+        seatOptions: seats.map(({ id, label }) => ({ id, label })),
+    }
 }
