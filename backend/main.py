@@ -1,13 +1,24 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, APIRouter, Query, Depends
 from pydantic import BaseModel
 
+from access_auth import require_admin
 from task_repository import get_task, list_tasks
 
 
 app = FastAPI(title="Pixel Agent Office API")
+
+tasks_router = APIRouter(
+    prefix="/api/tasks",
+    dependencies=[Depends(require_admin)],
+    responses={
+        401: {"description": "Access 토큰이 없거나 유효하지 않음"},
+        403: {"description": "관리자 권한이 없음"},
+        503: {"description": "Access 인증을 처리할 수 없음"},
+    },
+)
 
 
 class TaskSummary(BaseModel):
@@ -28,7 +39,7 @@ def health_check() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.get("/api/tasks", summary="작업 목록 조회")
+@tasks_router.get("", summary="작업 목록 조회")
 def read_tasks(
     limit: Annotated[int, Query(ge=1, le=100, description="최대 반환 작업 수")] = 20,
     offset: Annotated[int, Query(ge=0, le=2**63 - 1, description="목록 앞에서 건너뛸 작업 수")] = 0,
@@ -45,8 +56,8 @@ def read_tasks(
     ]
 
 
-@app.get(
-        "/api/tasks/{task_id}",
+@tasks_router.get(
+        "/{task_id}",
         summary="작업 상세 조회",
         responses={404: {"description": "해당 ID의 작업을 찾을 수 없음"}},
     )
@@ -62,3 +73,6 @@ def read_task(task_id: UUID) -> TaskDetail:
         raise HTTPException(status_code=404, detail="작업을 찾을 수 없습니다.")
 
     return TaskDetail.model_validate(task)
+
+
+app.include_router(tasks_router)
