@@ -44,3 +44,28 @@
   width: 100%;
   height: auto;
 }
+
+
+/* 작업 상세 패널 스타일 */
+label[for='office-seat'] {
+  display: block;
+  margin-bottom: 0.375rem;
+  color: #cbd5e1;
+}
+
+#office-seat {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #64748b;
+  border-radius: 0.375rem;
+  background: #111827;
+  color: #e8eef7;
+  color-scheme: dark;
+  font: inherit;
+}
+
+#office-seat:focus-visible {
+  outline: 2px solid #93c5fd;
+  outline-offset: 2px;
+}

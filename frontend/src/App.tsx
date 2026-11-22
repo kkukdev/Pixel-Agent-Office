@@ -7,6 +7,7 @@ import { OfficeCanvas } from './features/office/OfficeCanvas'
 
 function App() {
   const [selectedSeatId, setSelectedSeatId] = useState<string | null>(null)
+  const [seatIds, setSeatIds] = useState<string[]>([])
 
   return (
     <main className="pixel-agent-office">
@@ -17,14 +18,23 @@ function App() {
       <div className="office-layout">
         <section className="office-panel" aria-labelledby="office-title">
           <h2 id="office-title">오피스</h2>
-          <OfficeCanvas onSeatSelect={setSelectedSeatId} />
+          <OfficeCanvas onSeatSelect={setSelectedSeatId} onSeatsReady={setSeatIds} />
         </section>
 
         <section className="office-panel" aria-labelledby="task-title">
           <h2 id="task-title">작업 상세</h2>
-          <p role="status">
-              {selectedSeatId ? `선택한 좌석 · ${selectedSeatId}` : '캐릭터를 선택해 주세요.'}
-          </p>
+          <label htmlFor="office-seat">좌석 선택</label>
+          <select
+            id="office-seat"
+            value={selectedSeatId ?? ''}
+            disabled={seatIds.length === 0}
+            onChange={(event) => setSelectedSeatId(event.target.value || null)}
+          >
+            <option value="">좌석을 선택해 주세요</option>
+            {seatIds.map((seatId) => (
+              <option key={seatId} value={seatId}>{seatId}</option>
+            ))}
+          </select>
         </section>
       </div>
     </main>

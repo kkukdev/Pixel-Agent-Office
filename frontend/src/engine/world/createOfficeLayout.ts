@@ -20,7 +20,7 @@ export const OFFICE_MAP_SIZE = {
  *
  * @param ticker    캐릭터가 이동하는 동안 위치와 걷기 프레임을 갱신하는 ticker
  *
- * @returns         캔버스에 추가할 오피스 컨테이너
+ * @returns         오피스 컨테이너와 선택 가능한 좌석 ID 목록
  */
 export async function createOfficeLayout(
     ticker: Ticker,
@@ -314,5 +314,5 @@ export async function createOfficeLayout(
         })
     }
 
-    return office
+    return { office, seatIds: seats.map((seat) => seat.id) }
 }

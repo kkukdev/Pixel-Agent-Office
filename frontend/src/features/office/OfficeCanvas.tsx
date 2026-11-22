@@ -6,8 +6,10 @@ import { createOfficeLayout, OFFICE_MAP_SIZE } from '../../engine/world/createOf
 
 export function OfficeCanvas({
     onSeatSelect,
+    onSeatsReady,
 }: {
     onSeatSelect: (seatId: string) => void
+    onSeatsReady: (seatIds: string[]) => void
 }) {
     const hostRef = useRef<HTMLDivElement>(null)
     const [loadFailed, setLoadFailed] = useState(false)
@@ -37,7 +39,7 @@ export function OfficeCanvas({
 
                 initialized = true
 
-                const office = await createOfficeLayout(app.ticker, onSeatSelect)
+                const { office, seatIds } = await createOfficeLayout(app.ticker, onSeatSelect)
                 if (disposed) {
                     office.destroy({ children: true })
                     return
@@ -46,6 +48,7 @@ export function OfficeCanvas({
                 app.stage.addChild(office)
                 host?.appendChild(app.canvas)
                 app.render()
+                onSeatsReady(seatIds)
             } catch (error) {
                 if (disposed) return
 
@@ -68,7 +71,7 @@ export function OfficeCanvas({
                 app.destroy({removeView: true}, {children: true})
             }            
         }
-    }, [onSeatSelect])
+    }, [onSeatSelect, onSeatsReady])
 
     return (
         <>
