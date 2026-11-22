@@ -4,7 +4,11 @@ import { useEffect, useRef, useState } from "react"
 import { createOfficeLayout, OFFICE_MAP_SIZE } from '../../engine/world/createOfficeLayout'
 
 
-export function OfficeCanvas() {
+export function OfficeCanvas({
+    onSeatSelect,
+}: {
+    onSeatSelect: (seatId: string) => void
+}) {
     const hostRef = useRef<HTMLDivElement>(null)
     const [loadFailed, setLoadFailed] = useState(false)
 
@@ -33,7 +37,7 @@ export function OfficeCanvas() {
 
                 initialized = true
 
-                const office = await createOfficeLayout(app.ticker)
+                const office = await createOfficeLayout(app.ticker, onSeatSelect)
                 if (disposed) {
                     office.destroy({ children: true })
                     return
@@ -64,7 +68,7 @@ export function OfficeCanvas() {
                 app.destroy({removeView: true}, {children: true})
             }            
         }
-    }, [])
+    }, [onSeatSelect])
 
     return (
         <>

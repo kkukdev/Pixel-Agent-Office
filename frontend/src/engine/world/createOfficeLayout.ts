@@ -22,7 +22,10 @@ export const OFFICE_MAP_SIZE = {
  *
  * @returns         캔버스에 추가할 오피스 컨테이너
  */
-export async function createOfficeLayout(ticker: Ticker) {
+export async function createOfficeLayout(
+    ticker: Ticker,
+    onSeatSelect: (seatId: string) => void,
+) {
     const base = `${import.meta.env.BASE_URL}assets/`
 
     const [floorTexture, wallAtlas, plainFloor, gridFloor, checkFloor, furnitureLayout] = await Promise.all([
@@ -42,6 +45,12 @@ export async function createOfficeLayout(ticker: Ticker) {
         for (const [index, seat] of seats.entries()) {
             const character = await createOfficeCharacter(index % 6, seat.facing)
             seat.occupantLayer.addChild(character.sprite)
+
+            character.sprite.eventMode = 'static'
+            character.sprite.cursor = 'pointer'
+            character.sprite.on(
+                'pointertap', () => onSeatSelect(seat.id)
+            )
 
             if (seat.id === 'central-upper-end') {
                 endCharacter = character
@@ -190,9 +199,6 @@ export async function createOfficeLayout(ticker: Ticker) {
         const { sprite: character, setPose } = endCharacter
         const { occupantLayer, facing: seatedFacing } = endSeat
         let isMoving = false
-
-        character.eventMode = 'static'
-        character.cursor = 'pointer'
 
         character.on('pointertap', () => {
             if (isMoving) return
