@@ -23,6 +23,7 @@ AGENTS.md
 /data/
 /workspaces/
 /backups/
+/config/repos.yaml
 /compose.override.yaml
 /compose.override.yml
 *.log

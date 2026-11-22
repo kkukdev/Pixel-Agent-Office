@@ -1,0 +1,5 @@
+# project_id는 오피스에서 사용하는 식별자
+# repo_id와 installation_id는 GitHub에서 발급한 숫자 ID
+- project_id: sample-project
+  repo_id: 123456
+  installation_id: 789012
