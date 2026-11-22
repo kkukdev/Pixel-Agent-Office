@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 from sqlalchemy import text
+from sqlalchemy.engine import RowMapping
 
 from database import engine
 
@@ -37,3 +38,20 @@ def create_task(target_repo_id: int) -> str:
         )
 
     return task_id
+
+
+def get_task(task_id: str) -> RowMapping | None:
+    """
+    작업 ID로 현재 상태와 결과를 조회
+    """
+    with engine.connect() as connection:
+        return connection.execute(
+            text("""
+                SELECT task_id, target_repo_id, status, result_markdown
+                FROM tasks
+                WHERE task_id = :task_id
+            """),
+            {
+                "task_id": task_id,
+            },
+        ).mappings().one_or_none()
