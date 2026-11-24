@@ -94,6 +94,20 @@ class PullRequestSummary(BaseModel):
 _pull_request_list = TypeAdapter(list[PullRequestSummary])
 
 
+def _github_client() -> httpx.Client:
+    """
+    GitHub REST API에 공통 설정으로 연결할 클라이언트를 생성
+    """
+    return httpx.Client(
+        base_url="https://api.github.com",
+        headers={
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2026-03-10",
+        },
+        timeout=10,
+    )
+
+
 @contextmanager
 def _open_project(
     project_id: str,
@@ -107,14 +121,7 @@ def _open_project(
     if repository is None:
         raise ValueError("허용 목록에 등록되지 않은 프로젝트입니다.")
 
-    with httpx.Client(
-        base_url="https://api.github.com",
-        headers={
-            "Accept": "application/vnd.github+json",
-            "X-GitHub-Api-Version": "2026-03-10",
-        },
-        timeout=10,
-    ) as client:
+    with _github_client() as client:
         repository_path, auth_headers = _get_repository_access(
             client, 
             repository,
@@ -139,6 +146,28 @@ def list_open_pull_requests(project_id: str) -> list[PullRequestSummary]:
         response.raise_for_status()
 
         return _pull_request_list.validate_python(response.json())
+
+
+def pull_request_exists(
+    repository: AllowedRepository,
+    pull_number: int,
+) -> bool:
+    """
+    허용된 저장소에서 지정한 PR을 읽을 수 있는지 확인
+    """
+    with _github_client() as client:
+        repository_path, auth_headers = _get_repository_access(client, repository)
+        response = client.get(
+            f"{repository_path}/pulls/{pull_number}",
+            headers=auth_headers,
+        )
+
+        if response.status_code == 404:
+            return False
+
+        response.raise_for_status()
+
+        return True
 
 
 @dataclass(frozen=True)

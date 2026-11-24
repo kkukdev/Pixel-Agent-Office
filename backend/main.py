@@ -1,11 +1,14 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import FastAPI, HTTPException, APIRouter, Query, Depends
-from pydantic import BaseModel
+import httpx
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query
+from pydantic import BaseModel, ConfigDict, Field
 
 from access_auth import require_admin
-from task_repository import get_task, list_tasks
+from github_app import pull_request_exists
+from repository_settings import load_allowed_repositories
+from task_repository import create_review_task, get_task, list_tasks
 
 
 app = FastAPI(title="Pixel Agent Office API")
@@ -19,6 +22,26 @@ tasks_router = APIRouter(
         503: {"description": "Access 인증을 처리할 수 없음"},
     },
 )
+
+projects_router = APIRouter(
+    prefix="/api/projects",
+    dependencies=[Depends(require_admin)],
+)
+
+
+class ReviewRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    pull_number: int = Field(
+        strict=True,
+        gt=0,
+        le=2**63 - 1,
+        description="리뷰할 GitHub PR 번호",
+    )
+
+
+class ReviewAccepted(BaseModel):
+    task_id: UUID
 
 
 class TaskSummary(BaseModel):
@@ -75,4 +98,41 @@ def read_task(task_id: UUID) -> TaskDetail:
     return TaskDetail.model_validate(task)
 
 
+@projects_router.post(
+    "/{project_id}/reviews",
+    status_code=202,
+    summary="PR 리뷰 요청 등록",
+    responses={
+        401: {"description": "Access 토큰이 없거나 유효하지 않음"},
+        403: {"description": "관리자 권한이 없음"},
+        404: {"description": "프로젝트 또는 PR을 찾을 수 없음"},
+        502: {"description": "GitHub에서 PR을 확인할 수 없음"},
+        503: {"description": "Access 인증을 처리할 수 없음"},
+    },
+)
+def register_review(project_id: str, request: ReviewRequest) -> ReviewAccepted:
+    """
+    허용된 프로젝트의 PR을 확인하고 대기 작업으로 등록
+    """
+    repository = load_allowed_repositories().get(project_id)
+    if repository is None:
+        raise HTTPException(status_code=404, detail="등록된 프로젝트를 찾을 수 없습니다.")
+
+    try:
+        exists = pull_request_exists(repository, request.pull_number)
+    except httpx.HTTPError:
+        raise HTTPException(
+            status_code=502,
+            detail="GitHub에서 PR을 확인할 수 없습니다.",
+        ) from None
+
+    if not exists:
+        raise HTTPException(status_code=404, detail="해당 PR을 찾을 수 없습니다.")
+
+    task_id = create_review_task(repository.repo_id, request.pull_number)
+
+    return ReviewAccepted(task_id=UUID(task_id))
+
+
 app.include_router(tasks_router)
+app.include_router(projects_router)
