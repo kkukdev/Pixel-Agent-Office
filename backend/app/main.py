@@ -5,10 +5,10 @@ import httpx
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
 
-from access_auth import require_admin
-from github_app import pull_request_exists
-from repository_settings import load_allowed_repositories
-from task_repository import create_review_task, get_task, list_tasks
+from app.auth.access_auth import require_admin
+from app.integrations.github_app import pull_request_exists
+from app.projects.repository_settings import load_allowed_repositories
+from app.tasks.task_repository import create_review_task, get_task, list_tasks
 
 
 app = FastAPI(title="Pixel Agent Office API")

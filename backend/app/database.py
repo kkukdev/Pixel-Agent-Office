@@ -1,12 +1,13 @@
-from pathlib import Path
 from sqlite3 import Connection
 
 from alembic.config import Config
 from sqlalchemy import create_engine, event
 
+from app.paths import BACKEND_DIR
+
 
 # Alembic과 애플리케이션이 같은 SQLite 파일을 사용
-config_path = Path(__file__).resolve().with_name("alembic.ini")
+config_path = BACKEND_DIR / "alembic.ini"
 database_url = Config(config_path).get_main_option("sqlalchemy.url")
 
 if not database_url:

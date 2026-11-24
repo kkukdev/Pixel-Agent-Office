@@ -1,10 +1,13 @@
 from pathlib import Path
-from ruamel.yaml import YAML
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
+from ruamel.yaml import YAML
+
+from app.paths import PROJECT_ROOT
 
 
-REPOSITORIES_PATH = Path(__file__).resolve().parents[1] / "config" / "repos.yaml"
+REPOSITORIES_PATH = PROJECT_ROOT / "config" / "repos.yaml"
+
 
 class AllowedRepository(BaseModel):
     """

@@ -1,11 +1,16 @@
 from functools import lru_cache
-from fastapi import HTTPException, Request
 
 import jwt
+from fastapi import HTTPException, Request
 from jwt import PyJWKClient
-from jwt.exceptions import InvalidTokenError, PyJWKClientConnectionError, PyJWKClientError, PyJWKSetError
+from jwt.exceptions import (
+    InvalidTokenError,
+    PyJWKClientConnectionError,
+    PyJWKClientError,
+    PyJWKSetError,
+)
 
-from access_settings import load_access_settings
+from app.auth.access_settings import load_access_settings
 
 
 @lru_cache(maxsize=1)

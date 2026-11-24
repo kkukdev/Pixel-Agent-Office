@@ -1,22 +1,19 @@
 import os
-import jwt
-import httpx
-
-from pathlib import Path
-from time import time
-from pydantic import BaseModel, TypeAdapter
+from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
-
+from time import time
 from urllib.parse import quote
-from collections.abc import Generator
 
-from repository_settings import AllowedRepository, load_allowed_repositories
+import httpx
+import jwt
+from pydantic import BaseModel, TypeAdapter
+
+from app.paths import PROJECT_ROOT
+from app.projects.repository_settings import AllowedRepository, load_allowed_repositories
 
 
-PRIVATE_KEY_PATH = (
-    Path(__file__).resolve().parents[1] / "secrets" / "github-app.pem"
-)
+PRIVATE_KEY_PATH = PROJECT_ROOT / "secrets" / "github-app.pem"
 
 
 def create_app_jwt() -> str:

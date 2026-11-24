@@ -1,10 +1,10 @@
-from uuid import uuid4
 from collections.abc import Sequence
+from uuid import uuid4
 
 from sqlalchemy import text
 from sqlalchemy.engine import Connection, RowMapping
 
-from database import engine
+from app.database import engine
 
 
 def _insert_queued_task(connection: Connection, target_repo_id: int) -> str:
