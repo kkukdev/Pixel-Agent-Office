@@ -52,6 +52,9 @@ class TaskSummary(BaseModel):
 
 class TaskDetail(TaskSummary):
     result_markdown: str | None
+    error_code: str | None = Field(
+        description="실패 원인 코드. 저장된 오류 코드가 없으면 null.",
+    )
 
 
 @app.get("/api/health", summary="API 서버 상태 확인")

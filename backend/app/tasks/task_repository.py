@@ -237,7 +237,7 @@ def get_task(task_id: str) -> RowMapping | None:
     with engine.connect() as connection:
         return connection.execute(
             text("""
-                SELECT task_id, target_repo_id, status, result_markdown
+                SELECT task_id, target_repo_id, status, result_markdown, error_code
                 FROM tasks
                 WHERE task_id = :task_id
             """),
