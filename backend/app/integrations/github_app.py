@@ -105,6 +105,12 @@ def _github_client() -> httpx.Client:
     )
 
 
+class UnknownProjectError(ValueError):
+    """
+    요청한 프로젝트가 서버의 허용 목록에 등록되지 않은 경우 발생
+    """
+
+
 @contextmanager
 def _open_project(
     project_id: str,
@@ -117,7 +123,7 @@ def _open_project(
     """
     repository = load_allowed_repositories().get(project_id)
     if repository is None:
-        raise ValueError("허용 목록에 등록되지 않은 프로젝트입니다.")
+            raise UnknownProjectError("허용 목록에 등록되지 않은 프로젝트입니다.")
 
     if expected_repo_id is not None and repository.repo_id != expected_repo_id:
         raise ValueError("작업에 저장된 저장소 ID가 현재 프로젝트 설정과 일치하지 않습니다.")

@@ -6,7 +6,12 @@ from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.auth.access_auth import require_admin
-from app.integrations.github_app import pull_request_exists
+from app.integrations.github_app import (
+    PullRequestSummary,
+    UnknownProjectError,
+    list_open_pull_requests,
+    pull_request_exists,
+)
 from app.projects.repository_settings import load_allowed_repositories
 from app.tasks.task_repository import create_review_task, get_task, list_tasks
 
@@ -27,6 +32,10 @@ projects_router = APIRouter(
     prefix="/api/projects",
     dependencies=[Depends(require_admin)],
 )
+
+
+class ProjectSummary(BaseModel):
+    project_id: str
 
 
 class ReviewRequest(BaseModel):
@@ -99,6 +108,43 @@ def read_task(task_id: UUID) -> TaskDetail:
         raise HTTPException(status_code=404, detail="작업을 찾을 수 없습니다.")
 
     return TaskDetail.model_validate(task)
+
+
+@projects_router.get("", summary="리뷰 대상 프로젝트 목록 조회")
+def read_projects() -> list[ProjectSummary]:
+    """
+    허용 목록의 프로젝트 ID를 이름순으로 반환
+    """
+    return [
+        ProjectSummary(project_id=project_id)
+        for project_id in sorted(load_allowed_repositories())
+    ]
+
+
+@projects_router.get(
+    "/{project_id}/pulls",
+    summary="프로젝트의 열린 PR 목록 조회",
+    responses={
+        404: {"description": "등록된 프로젝트를 찾을 수 없음"},
+        502: {"description": "GitHub에서 PR 목록을 확인할 수 없음"},
+    },
+)
+def read_project_pulls(project_id: str) -> list[PullRequestSummary]:
+    """
+    선택한 프로젝트의 열린 PR 번호와 제목을 최대 20개 반환
+    """
+    try:
+        return list_open_pull_requests(project_id)
+    except UnknownProjectError:
+        raise HTTPException(
+            status_code=404,
+            detail="등록된 프로젝트를 찾을 수 없습니다.",
+        ) from None
+    except httpx.HTTPError:
+        raise HTTPException(
+            status_code=502,
+            detail="GitHub에서 PR 목록을 확인할 수 없습니다.",
+        ) from None
 
 
 @projects_router.post(
