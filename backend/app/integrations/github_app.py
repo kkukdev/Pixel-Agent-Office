@@ -110,6 +110,7 @@ def _open_project(
     project_id: str,
     *,
     read_contents: bool = False,
+    expected_repo_id: int | None = None,
 ) -> Generator[tuple[httpx.Client, str, dict[str, str]]]:
     """
     허용된 저장소의 API 경로와 읽기 전용 인증 헤더를 제공
@@ -117,6 +118,9 @@ def _open_project(
     repository = load_allowed_repositories().get(project_id)
     if repository is None:
         raise ValueError("허용 목록에 등록되지 않은 프로젝트입니다.")
+
+    if expected_repo_id is not None and repository.repo_id != expected_repo_id:
+        raise ValueError("작업에 저장된 저장소 ID가 현재 프로젝트 설정과 일치하지 않습니다.")
 
     with _github_client() as client:
         repository_path, auth_headers = _get_repository_access(
@@ -190,18 +194,23 @@ def _get_pull_request_shas(
     return pull_request["base"]["sha"], pull_request["head"]["sha"]
 
 
-def read_pull_request_diff(project_id: str, pull_number: int) -> PullRequestDiff:
+def read_pull_request_diff(
+    project_id: str,
+    pull_number: int,
+    *,
+    expected_repo_id: int | None = None,
+) -> PullRequestDiff:
     """
     현재 PR의 diff와 조회 전후에 확인한 커밋 SHA를 반환
     """
     if pull_number < 1:
         raise ValueError("PR 번호는 1 이상이어야 합니다.")
 
-    with _open_project(project_id, read_contents=True) as (
-        client,
-        repository_path,
-        auth_headers,
-    ):
+    with _open_project(
+        project_id,
+        read_contents=True,
+        expected_repo_id=expected_repo_id,
+    ) as (client, repository_path, auth_headers):
         pull_path = f"{repository_path}/pulls/{pull_number}"
         before = _get_pull_request_shas(client, pull_path, auth_headers)
 

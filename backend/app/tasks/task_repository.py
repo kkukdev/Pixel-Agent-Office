@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from sqlalchemy import text
 from sqlalchemy.engine import Connection, RowMapping
+from dataclasses import dataclass
 
 from app.database import engine
 
@@ -93,6 +94,138 @@ def create_review_task(target_repo_id: int, pull_number: int) -> str:
         )
 
     return task_id
+
+
+@dataclass(frozen=True)
+class ClaimedReviewTask:
+    task_id: str
+    target_repo_id: int
+    pull_number: int
+
+
+def claim_review_task(
+    connection: Connection,
+    task_id: str,
+) -> ClaimedReviewTask | None:
+    """
+    대기 중인 PR 리뷰를 실행 중으로 바꾸고 대상 저장소와 PR 번호를 반환
+    """
+    task = connection.execute(
+        text("""
+            UPDATE tasks
+            SET status = 'running'
+            WHERE task_id = :task_id
+                AND status = 'queued'
+                AND EXISTS (
+                    SELECT 1
+                    FROM github_review_runs AS r
+                    WHERE r.task_id = tasks.task_id
+                )
+            RETURNING target_repo_id
+        """),
+        {
+            "task_id": task_id,
+        },
+    ).mappings().one_or_none()
+
+    if task is None:
+        return None
+
+    pull_number = connection.execute(
+        text("""
+            SELECT pull_number
+            FROM github_review_runs
+            WHERE task_id = :task_id
+        """),
+        {"task_id": task_id},
+    ).scalar_one()
+
+    connection.execute(
+        text("""
+            INSERT INTO task_status_history (
+                task_id,
+                previous_status,
+                status
+            )
+            VALUES (
+                :task_id,
+                'queued',
+                'running'
+            )
+        """),
+        {
+            "task_id": task_id,
+        },
+    )
+
+    return ClaimedReviewTask(
+        task_id=task_id,
+        target_repo_id=task["target_repo_id"],
+        pull_number=pull_number,
+    )
+
+
+def finish_review_task(
+    connection: Connection,
+    task_id: str,
+    *,
+    result_markdown: str | None = None,
+    error_code: str | None = None,
+) -> bool:
+    """
+    실행 중인 PR 리뷰의 최종 상태와 이력을 저장
+    """
+    if (result_markdown is None) == (error_code is None):
+        raise ValueError("리뷰 결과와 오류 코드 중 하나만 지정해야 합니다.")
+
+    status = "completed" if error_code is None else "failed"
+
+    updated_task_id = connection.execute(
+        text("""
+            UPDATE tasks
+            SET status = :status,
+                result_markdown = :result_markdown,
+                error_code = :error_code
+            WHERE task_id = :task_id
+                AND status = 'running'
+                AND EXISTS (
+                    SELECT 1
+                    FROM github_review_runs AS r
+                    WHERE r.task_id = tasks.task_id
+                )
+            RETURNING task_id
+        """),
+        {
+            "task_id": task_id,
+            "status": status,
+            "result_markdown": result_markdown,
+            "error_code": error_code,
+        },
+    ).scalar_one_or_none()
+
+    if updated_task_id is None:
+        return False
+
+    connection.execute(
+        text("""
+            INSERT INTO task_status_history (
+                task_id,
+                previous_status,
+                status
+            )
+            VALUES (
+                :task_id,
+                'running',
+                :status
+            )
+        """),
+        {
+            "task_id": task_id,
+            "status": status,
+        },
+    )
+
+    return True
 
 
 def get_task(task_id: str) -> RowMapping | None:
