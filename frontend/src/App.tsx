@@ -3,6 +3,7 @@ import './App.css'
 import { useState } from 'react'
 
 import { OfficeCanvas } from './features/office/OfficeCanvas'
+import { ReviewTargetPicker } from './features/reviews/ReviewTargetPicker'
 
 import type { OfficeControls } from './engine/world/createOfficeLayout'
 
@@ -45,6 +46,7 @@ function App() {
           >
             끝자리 이동 시연
           </button>
+          <ReviewTargetPicker />
         </section>
       </div>
     </main>

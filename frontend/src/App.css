@@ -49,13 +49,13 @@
 
 
 /* 작업 상세 패널 스타일 */
-label[for='office-seat'] {
+label[for='office-seat'], .review-target-picker label {
   display: block;
   margin-bottom: 0.375rem;
   color: #cbd5e1;
 }
 
-#office-seat {
+#office-seat, .review-target-picker select {
   display: block;
   width: 100%;
   padding: 0.5rem 0.75rem;
@@ -67,7 +67,13 @@ label[for='office-seat'] {
   font: inherit;
 }
 
-#office-seat:focus-visible {
+#office-seat:focus-visible, .review-target-picker select:focus-visible {
   outline: 2px solid #93c5fd;
   outline-offset: 2px;
+}
+
+.review-target-picker {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
 }
