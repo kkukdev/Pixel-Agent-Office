@@ -2,6 +2,7 @@ import './App.css'
 
 import { useState } from 'react'
 
+import { GitHubAccount } from './features/auth/GitHubAccount'
 import { OfficeCanvas } from './features/office/OfficeCanvas'
 import { ReviewTargetPicker } from './features/reviews/ReviewTargetPicker'
 
@@ -17,6 +18,7 @@ function App() {
     <main className="pixel-agent-office">
       <header>
         <h1>Pixel Agent Office</h1>
+        <GitHubAccount />
       </header>
 
       <div className="office-layout">

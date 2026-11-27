@@ -9,7 +9,7 @@ from time import monotonic
 
 import httpx
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse, Response
 
 from app.auth.access_auth import require_admin
 
@@ -195,7 +195,7 @@ def github_callback(
     request.app.state.github_session = session
 
     response = RedirectResponse(
-        "/api/auth/github/session",
+        "/",
         status_code=303,
         headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"},
     )
@@ -213,12 +213,10 @@ def github_callback(
     return response
 
 
-@github_auth_router.get("/session", summary="연결된 GitHub 계정 조회")
-def read_github_session(request: Request):
+def _find_github_session(request: Request) -> GitHubSession | None:
     """
-    세션 쿠키를 확인하고 연결된 GitHub 사용자명을 반환
+    브라우저의 쿠키가 만료되지 않은 서버 세션과 일치하는지 확인
     """
-    _is_local_auth(request)
     session = getattr(request.app.state, "github_session", None)
     session_id = request.cookies.get(SESSION_COOKIE, "")
 
@@ -227,6 +225,46 @@ def read_github_session(request: Request):
         or session.expires_at <= monotonic()
         or not compare_digest(session_id.encode(), session.session_id.encode())
     ):
+        return None
+
+    return session
+
+
+@github_auth_router.get("/session", summary="연결된 GitHub 계정 조회")
+def read_github_session(request: Request) -> JSONResponse:
+    """
+    세션 쿠키를 확인하고 연결된 GitHub 사용자명을 반환
+    """
+    _is_local_auth(request)
+    session = _find_github_session(request)
+
+    if session is None:
         raise HTTPException(status_code=401, detail="GitHub 로그인이 필요합니다.")
 
     return JSONResponse({"login": session.login}, headers={"Cache-Control": "no-store"})
+
+
+@github_auth_router.post("/logout", status_code=204, summary="GitHub 로그아웃")
+def logout_github(request: Request) -> Response:
+    """
+    현재 오피스 세션을 지우고 브라우저의 세션 쿠키를 만료
+    """
+    local_dev = _is_local_auth(request)
+
+    # 외부 사이트의 단순 폼 제출로 로그아웃이 실행되지 않도록 검증
+    if request.headers.get("X-Office-Action") != "github-logout":
+        raise HTTPException(status_code=403, detail="로그아웃 요청을 확인할 수 없습니다.")
+
+    if _find_github_session(request) is not None:
+        request.app.state.github_session = None
+
+    response = Response(status_code=204, headers={"Cache-Control": "no-store"})
+    response.delete_cookie(
+        SESSION_COOKIE,
+        path="/",
+        httponly=True,
+        secure=not local_dev,
+        samesite="lax",
+    )
+
+    return response
