@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.auth.access_auth import require_admin
+from app.auth.github_auth import github_auth_router
 from app.integrations.github_app import (
     PullRequestSummary,
     UnknownProjectError,
@@ -185,3 +186,4 @@ def register_review(project_id: str, request: ReviewRequest) -> ReviewAccepted:
 
 app.include_router(tasks_router)
 app.include_router(projects_router)
+app.include_router(github_auth_router)
